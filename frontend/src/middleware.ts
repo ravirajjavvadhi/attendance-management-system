@@ -10,7 +10,7 @@ export default withAuth(
     // Define allowed paths per role
     const roleRoutes: Record<string, string[]> = {
       SUPERADMIN: ["/dashboard/superadmin", "/dashboard/admin/reports"],
-      MANAGEMENT: ["/dashboard/principal", "/dashboard/admin/staff", "/dashboard/student", "/dashboard/admin/reports"],
+      MANAGEMENT: ["/dashboard/principal", "/dashboard/admin/staff", "/dashboard/student", "/dashboard/admin/reports", "/setup"],
       FACULTY: ["/dashboard/faculty", "/dashboard/student"],
       STUDENT: ["/dashboard/student"],
     };
@@ -31,7 +31,7 @@ export default withAuth(
       return allowedRoutes.some((route) => targetPath.startsWith(route));
     };
 
-    if (path.startsWith("/dashboard")) {
+    if (path.startsWith("/dashboard") || path === "/setup") {
       if (!role) {
         return NextResponse.redirect(new URL("/login", req.url));
       }
@@ -55,5 +55,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/dashboard/:path*", "/setup"],
 };
