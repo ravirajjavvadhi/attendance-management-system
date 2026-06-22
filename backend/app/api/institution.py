@@ -4,8 +4,12 @@ from typing import List
 from app.db.database import get_db
 from app.models.tenant import Institution
 from app.schemas.institution import InstitutionCreate, InstitutionOut, TenantProvisionRequest
+from app.models.user import User, UserRole
+from app.api.deps import get_current_superadmin, get_current_active_user
 import re
 from datetime import datetime
+
+router = APIRouter()
 
 @router.post("/provision", response_model=InstitutionOut)
 def provision_tenant(
