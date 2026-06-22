@@ -29,10 +29,8 @@ def get_pending_sms(db: Session = Depends(get_db), current_admin: User = Depends
     
     result = []
     for log in logs:
-        # Find mobile number
-        user = db.query(User).filter(User.id == log.user_id).first()
         from app.models.profiles import StudentProfile
-        profile = db.query(StudentProfile).filter(StudentProfile.user_id == user.id).first()
+        profile = db.query(StudentProfile).filter(StudentProfile.id == log.user_id).first()
         
         if profile and profile.parent_mobile:
             result.append({
