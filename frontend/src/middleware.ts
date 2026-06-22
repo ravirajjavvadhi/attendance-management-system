@@ -33,7 +33,8 @@ export default withAuth(
 
     if (path.startsWith("/dashboard") || path === "/setup") {
       if (!role) {
-        return NextResponse.redirect(new URL("/login", req.url));
+        const errorMsg = token?.error ? `?error=${encodeURIComponent(token.error as string)}` : "";
+        return NextResponse.redirect(new URL(`/login${errorMsg}`, req.url));
       }
       
       allowed = isRouteAllowed(path, role);

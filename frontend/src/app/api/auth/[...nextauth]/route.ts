@@ -46,7 +46,9 @@ export const authOptions: NextAuthOptions = {
       if (account?.provider === "google" && profile?.email) {
         // Exchange Google email for our FastAPI JWT
         try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/google`, {
+          // Remove trailing slash if present in API URL
+          const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+          const res = await fetch(`${baseUrl}/api/v1/auth/google`, {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -58,9 +60,13 @@ export const authOptions: NextAuthOptions = {
           const data = await res.json();
           if (res.ok && data.access_token) {
             token.accessToken = data.access_token;
+          } else {
+            console.error("Backend rejected Google token:", data);
+            token.error = data.detail || "Backend rejected authentication";
           }
         } catch (e) {
           console.error("Failed to exchange Google token", e);
+          token.error = "Failed to connect to backend server";
         }
       } else if (user) {
         token.accessToken = (user as any).token;
