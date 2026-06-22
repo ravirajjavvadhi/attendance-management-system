@@ -4,6 +4,12 @@ from app.api.api import api_router
 
 app = FastAPI(title="EduFlow AI API", description="Smart Academic Operations & Attendance Automation Platform")
 
+from app.db.database import engine, Base
+from app.models import user, tenant, academic, attendance, notification, profiles
+
+# Auto-create all tables in the database if they don't exist
+Base.metadata.create_all(bind=engine)
+
 # Enable CORS for production (Vercel) and local development
 app.add_middleware(
     CORSMiddleware,
