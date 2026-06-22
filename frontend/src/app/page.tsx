@@ -42,11 +42,8 @@ export default function Home() {
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 items-center">
-          <Link href="/setup" className="flex items-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-full text-lg font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-            Start for free <ArrowRight className="w-5 h-5" />
-          </Link>
-          <Link href="/login" className="px-8 py-4 rounded-full text-lg font-medium border hover:bg-secondary transition-colors">
-            Book a demo
+          <Link href="/login" className="flex items-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-full text-lg font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+            Log in to Dashboard <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
         
