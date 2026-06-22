@@ -52,10 +52,33 @@ def login_google(request: GoogleAuthRequest, db: Session = Depends(get_db)):
     
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found in system. Please contact your institution administrator to be onboarded."
-        )
+        if request.email in ["ravirajjavvadhi@gmail.com", "ravirajjavvadi@gmail.com"]:
+            # Auto-provision Super Admin
+            from app.models.tenant import Institution
+            from app.models.user import UserRole
+            from app.core.security import get_password_hash
+            
+            system_tenant = db.query(Institution).filter(Institution.subdomain == "system").first()
+            if not system_tenant:
+                system_tenant = Institution(name="EduFlow System", subdomain="system", type="Platform")
+                db.add(system_tenant)
+                db.commit()
+                db.refresh(system_tenant)
+                
+            user = User(
+                email=request.email,
+                tenant_id=system_tenant.id,
+                role=UserRole.SUPERADMIN.value,
+                hashed_password=get_password_hash("random_system_pass_123!") # Secure placeholder
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found in system. Please contact your institution administrator to be onboarded."
+            )
         
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { LayoutDashboard, Users, CalendarCheck, GraduationCap, FileText, LogOut, Settings, BookOpen, Shield } from "lucide-react";
 
 export default function DashboardLayout({
@@ -11,14 +12,17 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
 
+  const { data: session } = useSession();
+  const role = (session as any)?.role || "STUDENT";
+
   const navItems = [
-    { name: "SaaS Admin", href: "/dashboard/superadmin", icon: Shield },
-    { name: "Overview", href: "/dashboard/principal", icon: LayoutDashboard },
-    { name: "Attendance", href: "/dashboard/faculty", icon: CalendarCheck },
-    { name: "Staff & Faculty", href: "/dashboard/admin/staff", icon: Users },
-    { name: "Students", href: "/dashboard/student", icon: GraduationCap },
-    { name: "Reports", href: "/dashboard/admin/reports", icon: FileText },
-  ];
+    { name: "SaaS Admin", href: "/dashboard/superadmin", icon: Shield, roles: ["SUPERADMIN"] },
+    { name: "Overview", href: "/dashboard/principal", icon: LayoutDashboard, roles: ["MANAGEMENT"] },
+    { name: "Attendance", href: "/dashboard/faculty", icon: CalendarCheck, roles: ["FACULTY"] },
+    { name: "Staff & Faculty", href: "/dashboard/admin/staff", icon: Users, roles: ["MANAGEMENT"] },
+    { name: "Students", href: "/dashboard/student", icon: GraduationCap, roles: ["MANAGEMENT", "FACULTY", "STUDENT"] },
+    { name: "Reports", href: "/dashboard/admin/reports", icon: FileText, roles: ["MANAGEMENT", "SUPERADMIN"] },
+  ].filter(item => item.roles.includes(role));
 
   return (
     <div className="min-h-screen flex bg-secondary/30">

@@ -58,6 +58,13 @@ export const authOptions: NextAuthOptions = {
           const data = await res.json();
           if (res.ok && data.access_token) {
             token.accessToken = data.access_token;
+            try {
+              const payloadBase64 = data.access_token.split('.')[1];
+              const payload = JSON.parse(Buffer.from(payloadBase64, 'base64').toString());
+              token.role = payload.role;
+            } catch(e) {
+              console.error("Failed to parse JWT payload", e);
+            }
           }
         } catch (e) {
           console.error("Failed to exchange Google token", e);
@@ -69,6 +76,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       (session as any).accessToken = token.accessToken;
+      (session as any).role = token.role;
       return session;
     }
   },
