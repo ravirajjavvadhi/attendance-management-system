@@ -12,6 +12,10 @@ class InstitutionBase(BaseModel):
 class InstitutionCreate(InstitutionBase):
     pass
 
+class TenantProvisionRequest(BaseModel):
+    name: str
+    admin_email: str
+
 class InstitutionOut(InstitutionBase):
     id: int
     created_at: datetime

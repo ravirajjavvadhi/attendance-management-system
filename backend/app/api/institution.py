@@ -3,11 +3,63 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.db.database import get_db
 from app.models.tenant import Institution
-from app.schemas.institution import InstitutionCreate, InstitutionOut
-from app.models.user import User, UserRole
-from app.api.deps import get_current_superadmin, get_current_active_user
+from app.schemas.institution import InstitutionCreate, InstitutionOut, TenantProvisionRequest
+import re
+from datetime import datetime
 
-router = APIRouter()
+@router.post("/provision", response_model=InstitutionOut)
+def provision_tenant(
+    request: TenantProvisionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_superadmin)
+):
+    from app.core.security import get_password_hash
+    
+    # Generate simple subdomain
+    subdomain = re.sub(r'[^a-zA-Z0-9]', '', request.name).lower()
+    
+    # Ensure subdomain is unique
+    if db.query(Institution).filter(Institution.subdomain == subdomain).first():
+        subdomain = f"{subdomain}{int(datetime.utcnow().timestamp())}"
+        
+    new_institution = Institution(
+        name=request.name,
+        subdomain=subdomain,
+        type="School"
+    )
+    db.add(new_institution)
+    db.commit()
+    db.refresh(new_institution)
+    
+    # Create management user
+    admin_user = User(
+        email=request.admin_email,
+        tenant_id=new_institution.id,
+        role=UserRole.MANAGEMENT.value,
+        hashed_password=get_password_hash("temporary_password_123")
+    )
+    db.add(admin_user)
+    db.commit()
+    
+    return new_institution
+
+@router.get("/with-admins")
+def get_institutions_with_admins(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_superadmin)
+):
+    institutions = db.query(Institution).all()
+    result = []
+    for inst in institutions:
+        admin = db.query(User).filter(User.tenant_id == inst.id, User.role == UserRole.MANAGEMENT.value).first()
+        inst_dict = {
+            "id": inst.id,
+            "name": inst.name,
+            "status": "Active" if inst.is_active else "Inactive",
+            "management_email": admin.email if admin else "No Admin"
+        }
+        result.append(inst_dict)
+    return result
 
 @router.post("/", response_model=InstitutionOut)
 def create_institution(

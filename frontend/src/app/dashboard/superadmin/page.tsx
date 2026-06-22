@@ -1,22 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Building2, Mail, Plus, ShieldCheck } from "lucide-react";
+import { useSession } from "next-auth/react";
+
+interface Institution {
+  id: number;
+  name: string;
+  management_email: string;
+  status: string;
+}
 
 export default function SuperAdminDashboard() {
+  const { data: session } = useSession();
+  const token = (session as any)?.accessToken;
+
   const [isCreating, setIsCreating] = useState(false);
   const [institutionName, setInstitutionName] = useState("");
   const [managementEmail, setManagementEmail] = useState("");
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleCreate = (e: React.FormEvent) => {
+  const fetchInstitutions = async () => {
+    if (!token) return;
+    try {
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const res = await fetch(`${baseUrl}/api/v1/institutions/with-admins`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInstitutions(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch institutions", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInstitutions();
+  }, [token]);
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate API call
-    setTimeout(() => {
-      alert(`Created ${institutionName} and sent invitation to ${managementEmail}`);
-      setIsCreating(false);
-      setInstitutionName("");
-      setManagementEmail("");
-    }, 1000);
+    if (!token) return;
+
+    try {
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const res = await fetch(`${baseUrl}/api/v1/institutions/provision`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ name: institutionName, admin_email: managementEmail })
+      });
+
+      if (res.ok) {
+        alert(`Successfully provisioned ${institutionName} and invited ${managementEmail}`);
+        setIsCreating(false);
+        setInstitutionName("");
+        setManagementEmail("");
+        fetchInstitutions();
+      } else {
+        const data = await res.json();
+        alert(`Error: ${data.detail || "Failed to provision institution"}`);
+      }
+    } catch (error) {
+      console.error("Provisioning error", error);
+      alert("Failed to connect to backend server.");
+    }
   };
 
   return (
@@ -25,7 +80,7 @@ export default function SuperAdminDashboard() {
         <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
           <ShieldCheck className="w-8 h-8 text-indigo-500" /> Super Admin
         </h1>
-        <p className="text-muted-foreground mt-2">Manage all SaaS tenants and institutions.</p>
+        <p className="text-muted-foreground mt-2">Manage all SaaS tenants and institutions. Strict RBAC enforced.</p>
       </div>
 
       <div className="flex items-center justify-between">
@@ -103,20 +158,31 @@ export default function SuperAdminDashboard() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            <tr className="hover:bg-secondary/20 transition-colors">
-              <td className="px-6 py-4 font-medium text-foreground">Harvard Business School</td>
-              <td className="px-6 py-4 text-muted-foreground">admin@hbs.edu</td>
-              <td className="px-6 py-4">
-                <span className="bg-green-500/10 text-green-500 px-2 py-1 rounded text-xs font-medium">Active</span>
-              </td>
-            </tr>
-            <tr className="hover:bg-secondary/20 transition-colors">
-              <td className="px-6 py-4 font-medium text-foreground">MIT Engineering</td>
-              <td className="px-6 py-4 text-muted-foreground">principal@mit.edu</td>
-              <td className="px-6 py-4">
-                <span className="bg-green-500/10 text-green-500 px-2 py-1 rounded text-xs font-medium">Active</span>
-              </td>
-            </tr>
+            {isLoading ? (
+              <tr>
+                <td colSpan={3} className="px-6 py-8 text-center text-muted-foreground">
+                  Loading institutions...
+                </td>
+              </tr>
+            ) : institutions.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="px-6 py-8 text-center text-muted-foreground">
+                  No institutions found. Provision one above.
+                </td>
+              </tr>
+            ) : (
+              institutions.map((inst) => (
+                <tr key={inst.id} className="hover:bg-secondary/20 transition-colors">
+                  <td className="px-6 py-4 font-medium text-foreground">{inst.name}</td>
+                  <td className="px-6 py-4 text-muted-foreground">{inst.management_email}</td>
+                  <td className="px-6 py-4">
+                    <span className="bg-green-500/10 text-green-500 px-2 py-1 rounded text-xs font-medium">
+                      {inst.status}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
