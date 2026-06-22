@@ -13,16 +13,26 @@ router = APIRouter()
 
 @router.post("/faculty", response_model=UserOut)
 def create_faculty(user_in: UserCreate, profile_in: FacultyProfileCreate, db: Session = Depends(get_db), current_management: User = Depends(get_current_management)):
+    import secrets
+    import string
+    from app.services.notification_service import notification_service
+    from app.services.email_templates import get_faculty_invitation_email
+    from app.models.tenant import Institution
+    
     # Check if email/mobile exists
     db_user = db.query(User).filter((User.email == user_in.email) | (User.mobile_number == user_in.mobile_number)).first()
     if db_user:
         raise HTTPException(status_code=400, detail="User with this email or mobile already exists")
     
+    # Generate secure temporary password
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
+    
     new_user = User(
         tenant_id=current_management.tenant_id,
         email=user_in.email,
         mobile_number=user_in.mobile_number,
-        hashed_password=get_password_hash(user_in.password),
+        hashed_password=get_password_hash(temp_password),
         role=UserRole.FACULTY.value,
         is_active=user_in.is_active
     )
@@ -33,6 +43,26 @@ def create_faculty(user_in: UserCreate, profile_in: FacultyProfileCreate, db: Se
     new_profile = FacultyProfile(**profile_in.model_dump(), user_id=new_user.id)
     db.add(new_profile)
     db.commit()
+    
+    # Send Faculty Invitation Email
+    institution = db.query(Institution).filter(Institution.id == current_management.tenant_id).first()
+    portal_url = "https://attendance-management-system-afk0.onrender.com"
+    
+    faculty_name = f"{profile_in.first_name} {profile_in.last_name}"
+    
+    email_content = get_faculty_invitation_email(
+        faculty_name=faculty_name,
+        institution_name=institution.name if institution else "Your Institution",
+        faculty_email=new_user.email,
+        generated_password=temp_password,
+        portal_url=portal_url
+    )
+    
+    notification_service.send_email(
+        to_email=new_user.email,
+        subject="Welcome to EduFlow AI Faculty Portal",
+        html_content=email_content
+    )
     
     return new_user
 

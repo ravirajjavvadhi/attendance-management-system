@@ -14,7 +14,10 @@ class InstitutionCreate(InstitutionBase):
 
 class TenantProvisionRequest(BaseModel):
     name: str
+    type: str
     admin_email: str
+    management_name: str
+    contact_number: Optional[str] = None
 
 class InstitutionOut(InstitutionBase):
     id: int

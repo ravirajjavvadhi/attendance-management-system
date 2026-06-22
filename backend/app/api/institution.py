@@ -18,6 +18,11 @@ def provision_tenant(
     current_user: User = Depends(get_current_superadmin)
 ):
     from app.core.security import get_password_hash
+    import secrets
+    import string
+    from app.services.notification_service import notification_service
+    from app.services.email_templates import get_institution_welcome_email
+    from app.core.config import settings
     
     # Generate simple subdomain
     subdomain = re.sub(r'[^a-zA-Z0-9]', '', request.name).lower()
@@ -29,21 +34,43 @@ def provision_tenant(
     new_institution = Institution(
         name=request.name,
         subdomain=subdomain,
-        type="School"
+        type=request.type
     )
     db.add(new_institution)
     db.commit()
     db.refresh(new_institution)
+    
+    # Generate secure temporary password
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
     
     # Create management user
     admin_user = User(
         email=request.admin_email,
         tenant_id=new_institution.id,
         role=UserRole.MANAGEMENT.value,
-        hashed_password=get_password_hash("temporary_password_123")
+        hashed_password=get_password_hash(temp_password)
     )
     db.add(admin_user)
     db.commit()
+    
+    # Send Welcome Email
+    # In a real deployed app, NEXT_PUBLIC_API_URL should be the frontend URL.
+    portal_url = "https://attendance-management-system-afk0.onrender.com" # Default backend, frontend is deployed on vercel
+    
+    email_content = get_institution_welcome_email(
+        management_name=request.management_name,
+        institution_name=new_institution.name,
+        management_email=request.admin_email,
+        generated_password=temp_password,
+        portal_url=portal_url
+    )
+    
+    notification_service.send_email(
+        to_email=request.admin_email,
+        subject="Welcome to EduFlow AI – Your Institution Has Been Successfully Onboarded",
+        html_content=email_content
+    )
     
     return new_institution
 
