@@ -40,7 +40,12 @@ def create_faculty(user_in: UserCreate, profile_in: FacultyProfileCreate, db: Se
     db.commit()
     db.refresh(new_user)
     
-    new_profile = FacultyProfile(**profile_in.model_dump(), user_id=new_user.id)
+    profile_data = profile_in.model_dump()
+    first_name = profile_data.pop("first_name", "")
+    last_name = profile_data.pop("last_name", "")
+    profile_data["name"] = f"{first_name} {last_name}".strip()
+    
+    new_profile = FacultyProfile(**profile_data, user_id=new_user.id)
     db.add(new_profile)
     db.commit()
     
