@@ -27,13 +27,7 @@ export default function Login() {
       if (res?.error) {
         setError("Invalid credentials. Please try again.");
       } else {
-        if (username.includes("admin") || username.includes("principal")) {
-          router.push("/dashboard/principal");
-        } else if (username.includes("faculty")) {
-          router.push("/dashboard/faculty");
-        } else {
-          router.push("/dashboard/student");
-        }
+        router.push("/dashboard");
       }
     } catch (err) {
       setError("An unexpected error occurred.");
@@ -43,7 +37,7 @@ export default function Login() {
   };
 
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/dashboard/faculty" });
+    signIn("google", { callbackUrl: "/dashboard" });
   };
 
   return (

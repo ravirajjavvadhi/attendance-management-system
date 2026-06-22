@@ -4,8 +4,8 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from app.db.database import get_db
-from app.api.deps import get_current_active_user
-from app.models.user import User, UserRole
+from app.api.deps import get_current_admin
+from app.models.user import User
 from app.models.academic import Class, Section, AcademicYear
 from app.models.profiles import StudentProfile
 
@@ -20,18 +20,15 @@ class StudentBulkCreate(BaseModel):
 def bulk_create_students(
     request: StudentBulkCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """
     Smart Onboarding: Create student profiles instantly just using Roll Numbers.
     Details like Name and Parent Mobile can be updated later.
     """
-    if current_user.role not in [UserRole.SUPERADMIN.value, UserRole.MANAGEMENT.value, UserRole.ADMIN.value]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to manage students")
-        
     section = db.query(Section).filter(Section.id == request.section_id, Section.tenant_id == current_user.tenant_id).first()
     if not section:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Section not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Section not found or access denied")
         
     created_count = 0
     for roll in request.roll_numbers:
@@ -60,17 +57,19 @@ def update_student_details(
     student_id: int,
     request: StudentUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """
     Step 2 of Smart Onboarding: Management clicks a roll number to add details.
     """
-    if current_user.role not in [UserRole.SUPERADMIN.value, UserRole.MANAGEMENT.value, UserRole.ADMIN.value]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to manage students")
-        
-    student = db.query(StudentProfile).filter(StudentProfile.id == student_id).first()
+    # Enforce multi-tenant boundaries by joining StudentProfile with Section and checking tenant_id
+    student = db.query(StudentProfile).join(Section).filter(
+        StudentProfile.id == student_id,
+        Section.tenant_id == current_user.tenant_id
+    ).first()
+    
     if not student:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found or access denied")
         
     student.name = request.name
     student.parent_mobile = request.parent_mobile

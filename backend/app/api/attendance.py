@@ -7,7 +7,7 @@ from app.models.attendance import AttendanceRecord
 from app.models.user import User, UserRole
 from app.models.profiles import StudentProfile
 from app.schemas.attendance import AttendanceSubmit, SmartAttendanceSubmit
-from app.api.deps import get_current_faculty
+from app.api.deps import get_current_faculty, get_current_management_or_faculty
 from app.services.sms import queue_sms
 
 router = APIRouter()
@@ -103,7 +103,7 @@ def get_attendance_report(
     section_id: int, 
     report_date: date, 
     db: Session = Depends(get_db), 
-    current_user: User = Depends(get_current_faculty)
+    current_user: User = Depends(get_current_management_or_faculty)
 ):
     records = db.query(AttendanceRecord).filter(
         AttendanceRecord.section_id == section_id,

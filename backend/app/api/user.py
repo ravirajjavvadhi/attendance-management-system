@@ -7,7 +7,7 @@ from app.models.profiles import StudentProfile, FacultyProfile
 from app.schemas.user import UserCreate, UserOut
 from app.schemas.profile import StudentProfileCreate, FacultyProfileCreate
 from app.core.security import get_password_hash
-from app.api.deps import get_current_management, get_current_faculty
+from app.api.deps import get_current_management, get_current_faculty, get_current_management_or_faculty
 
 router = APIRouter()
 
@@ -37,7 +37,7 @@ def create_faculty(user_in: UserCreate, profile_in: FacultyProfileCreate, db: Se
     return new_user
 
 @router.post("/student", response_model=UserOut)
-def create_student(user_in: UserCreate, profile_in: StudentProfileCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_faculty)):
+def create_student(user_in: UserCreate, profile_in: StudentProfileCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_management_or_faculty)):
     # Check if email/mobile exists
     db_user = db.query(User).filter((User.email == user_in.email) | (User.mobile_number == user_in.mobile_number)).first()
     if db_user:
