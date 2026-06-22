@@ -1,14 +1,10 @@
 import smtplib
 from email.message import EmailMessage
-from typing import List, Dict, Any
-from app.workers.celery_app import celery_app
 from app.core.config import settings
 from app.db.database import SessionLocal
-from app.models.user import User
 from app.models.notification import NotificationLog, SMSTemplate
 from app.models.profiles import StudentProfile
 
-@celery_app.task
 def send_email(to_email: str, subject: str, body: str, recipient_id: int, tenant_id: int):
     if not settings.SMTP_HOST:
         return {"status": "skipped", "reason": "SMTP not configured"}
@@ -48,7 +44,6 @@ def send_email(to_email: str, subject: str, body: str, recipient_id: int, tenant
     
     return {"status": status}
 
-@celery_app.task
 def queue_sms(student_id: int, date: str, tenant_id: int):
     """
     Background worker that formats the custom SMS for a student's absence and
@@ -79,7 +74,7 @@ def queue_sms(student_id: int, date: str, tenant_id: int):
         
         log = NotificationLog(
             tenant_id=tenant_id,
-            user_id=student_id, # Using student_id (StudentProfile.id) as the recipient ID here
+            user_id=student_id,
             type="SMS",
             status=log_status,
             content=message

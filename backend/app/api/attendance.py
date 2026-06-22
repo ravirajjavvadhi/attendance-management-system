@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import date
 from typing import List
@@ -8,13 +8,14 @@ from app.models.user import User, UserRole
 from app.models.profiles import StudentProfile
 from app.schemas.attendance import AttendanceSubmit, SmartAttendanceSubmit
 from app.api.deps import get_current_faculty
-from app.workers.tasks import queue_sms
+from app.services.sms import queue_sms
 
 router = APIRouter()
 
 @router.post("/submit")
 def submit_attendance(
     attendance_data: AttendanceSubmit,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_faculty: User = Depends(get_current_faculty)
 ):
@@ -47,16 +48,16 @@ def submit_attendance(
             
     db.commit()
     
-    # Trigger background tasks using Celery for absent students
-    # Using delay() pushes the task to the Redis queue for the worker to pick up
+    # Trigger background tasks using FastAPI for absent students
     for student_id in absent_student_ids:
-        queue_sms.delay(student_id, str(attendance_data.date), current_faculty.tenant_id)
+        background_tasks.add_task(queue_sms, student_id, str(attendance_data.date), current_faculty.tenant_id)
 
     return {"message": "Attendance saved successfully", "absent_count": len(absent_student_ids)}
 
 @router.post("/submit/smart")
 def submit_smart_attendance(
     attendance_data: SmartAttendanceSubmit,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_faculty: User = Depends(get_current_faculty)
 ):
@@ -93,7 +94,7 @@ def submit_smart_attendance(
     
     # Trigger background SMS for absentees only
     for student_id in attendance_data.absent_student_ids:
-        queue_sms.delay(student_id, str(attendance_data.date), current_faculty.tenant_id)
+        background_tasks.add_task(queue_sms, student_id, str(attendance_data.date), current_faculty.tenant_id)
 
     return {"message": "Smart Attendance saved successfully", "absent_count": len(attendance_data.absent_student_ids)}
 
