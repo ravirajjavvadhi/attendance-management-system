@@ -55,8 +55,7 @@ def provision_tenant(
     db.commit()
     
     # Send Welcome Email
-    # In a real deployed app, NEXT_PUBLIC_API_URL should be the frontend URL.
-    portal_url = "https://attendance-management-system-afk0.onrender.com" # Default backend, frontend is deployed on vercel
+    portal_url = "https://edu-flow-ai-jlr.vercel.app" # Frontend Vercel URL
     
     email_content = get_institution_welcome_email(
         management_name=request.management_name,

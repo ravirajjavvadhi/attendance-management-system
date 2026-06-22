@@ -12,6 +12,41 @@ from app.services.sms import queue_sms
 
 router = APIRouter()
 
+@router.get("/stats/today")
+def get_today_stats(
+    db: Session = Depends(get_db),
+    current_management: User = Depends(get_current_management_or_faculty)
+):
+    from sqlalchemy import func
+    today = date.today()
+    
+    # Total students in tenant
+    total_students = db.query(func.count(StudentProfile.id)) \
+        .join(User, StudentProfile.user_id == User.id) \
+        .filter(User.tenant_id == current_management.tenant_id).scalar() or 0
+        
+    # Attendance for today
+    attendance_records = db.query(AttendanceRecord).filter(
+        AttendanceRecord.tenant_id == current_management.tenant_id,
+        AttendanceRecord.date == today
+    ).all()
+    
+    present_today = sum(1 for r in attendance_records if r.is_present)
+    absent_today = sum(1 for r in attendance_records if not r.is_present)
+    
+    # Low attendance alerts (students with < 75% attendance)
+    # This requires aggregating all attendance records per student.
+    # For now, we return a simple representation or mock for the alerts until we build the full reporting query.
+    alerts = []
+    
+    return {
+        "total_students": total_students,
+        "present_today": present_today,
+        "absent_today": absent_today,
+        "attendance_rate": f"{(present_today / total_students * 100):.1f}%" if total_students > 0 else "0%",
+        "alerts": alerts
+    }
+
 @router.post("/submit")
 def submit_attendance(
     attendance_data: AttendanceSubmit,
@@ -112,3 +147,35 @@ def get_attendance_report(
     ).all()
     
     return records
+@router.get("/reports/weekly")
+def get_weekly_report(
+    db: Session = Depends(get_db),
+    current_management: User = Depends(get_current_management_or_faculty)
+):
+    """
+    Returns the attendance rate for the last 5 days (e.g., Mon-Fri).
+    """
+    from datetime import timedelta
+    from sqlalchemy import func
+    
+    today = date.today()
+    days = []
+    for i in range(4, -1, -1):
+        day = today - timedelta(days=i)
+        
+        # Get total records for this day
+        records = db.query(AttendanceRecord).filter(
+            AttendanceRecord.tenant_id == current_management.tenant_id,
+            AttendanceRecord.date == day
+        ).all()
+        
+        total = len(records)
+        present = sum(1 for r in records if r.is_present)
+        rate = int((present / total * 100)) if total > 0 else 0
+        
+        days.append({
+            "name": day.strftime("%a"), # Mon, Tue, etc
+            "attendance": rate
+        })
+        
+    return days

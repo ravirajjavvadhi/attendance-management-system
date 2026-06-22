@@ -46,7 +46,7 @@ def create_faculty(user_in: UserCreate, profile_in: FacultyProfileCreate, db: Se
     
     # Send Faculty Invitation Email
     institution = db.query(Institution).filter(Institution.id == current_management.tenant_id).first()
-    portal_url = "https://attendance-management-system-afk0.onrender.com"
+    portal_url = "https://edu-flow-ai-jlr.vercel.app"
     
     faculty_name = f"{profile_in.first_name} {profile_in.last_name}"
     
@@ -97,3 +97,49 @@ def get_users(role: str = None, skip: int = 0, limit: int = 100, db: Session = D
     if role:
         query = query.filter(User.role == role)
     return query.offset(skip).limit(limit).all()
+
+@router.get("/faculty", status_code=status.HTTP_200_OK)
+def get_faculty_with_profiles(db: Session = Depends(get_db), current_management: User = Depends(get_current_management)):
+    # Join User and FacultyProfile
+    results = db.query(User, FacultyProfile).outerjoin(FacultyProfile, User.id == FacultyProfile.user_id)\
+        .filter(User.tenant_id == current_management.tenant_id, User.role == UserRole.FACULTY.value).all()
+        
+    response = []
+    for user, profile in results:
+        response.append({
+            "id": user.id,
+            "email": user.email,
+            "role": user.role,
+            "is_active": user.is_active,
+            "first_name": profile.name.split(" ")[0] if profile and profile.name else "",
+            "last_name": " ".join(profile.name.split(" ")[1:]) if profile and profile.name and " " in profile.name else "",
+            "access_level": profile.access_level if profile else "ASSIGNED_SECTION_ACCESS"
+        })
+    return response
+
+@router.delete("/faculty/{user_id}", status_code=status.HTTP_200_OK)
+def delete_faculty(user_id: int, db: Session = Depends(get_db), current_management: User = Depends(get_current_management)):
+    user = db.query(User).filter(User.id == user_id, User.tenant_id == current_management.tenant_id, User.role == UserRole.FACULTY.value).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Faculty not found")
+        
+    profile = db.query(FacultyProfile).filter(FacultyProfile.user_id == user.id).first()
+    if profile:
+        db.delete(profile)
+        
+    db.delete(user)
+    db.commit()
+    return {"message": "Faculty revoked successfully"}
+
+@router.put("/faculty/{user_id}", status_code=status.HTTP_200_OK)
+def update_faculty(user_id: int, request: dict, db: Session = Depends(get_db), current_management: User = Depends(get_current_management)):
+    user = db.query(User).filter(User.id == user_id, User.tenant_id == current_management.tenant_id, User.role == UserRole.FACULTY.value).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Faculty not found")
+        
+    profile = db.query(FacultyProfile).filter(FacultyProfile.user_id == user.id).first()
+    if profile and "access_level" in request:
+        profile.access_level = request["access_level"]
+        
+    db.commit()
+    return {"message": "Faculty updated successfully"}

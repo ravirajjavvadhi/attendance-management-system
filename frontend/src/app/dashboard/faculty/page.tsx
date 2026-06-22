@@ -1,31 +1,105 @@
 "use client";
 
-import { useState } from "react";
-import { Check, X, Save, Clock, Users, BookOpen } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Check, X, Save, Users, Zap } from "lucide-react";
+import { useSession } from "next-auth/react";
+
+interface Student {
+  id: number;
+  roll_number: string;
+  name: string;
+  present?: boolean;
+}
 
 export default function FacultyDashboard() {
-  const [selectedClass, setSelectedClass] = useState("10th-A");
-  const [selectedSubject, setSelectedSubject] = useState("Mathematics");
-  
-  const [students, setStudents] = useState([
-    { id: "101", roll: "1", name: "John Doe", present: true },
-    { id: "102", roll: "2", name: "Jane Smith", present: true },
-    { id: "103", roll: "3", name: "Mike Johnson", present: true },
-    { id: "104", roll: "4", name: "Emily Davis", present: true },
-    { id: "105", roll: "5", name: "Chris Brown", present: true },
-    { id: "106", roll: "6", name: "Sarah Wilson", present: true },
-    { id: "107", roll: "7", name: "David Taylor", present: true },
-  ]);
+  const { data: session } = useSession();
+  const token = (session as any)?.accessToken;
 
-  const toggleAttendance = (id: string) => {
+  const [sections, setSections] = useState<any[]>([]);
+  const [selectedSectionId, setSelectedSectionId] = useState("");
+  
+  const [students, setStudents] = useState<Student[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchSections = async () => {
+      if (!token) return;
+      try {
+        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+        const res = await fetch(`${baseUrl}/api/v1/academic/sections`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSections(data);
+          if (data.length > 0) {
+            setSelectedSectionId(data[0].id.toString());
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch sections", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSections();
+  }, [token]);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      if (!token || !selectedSectionId) return;
+      setIsLoading(true);
+      try {
+        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+        const res = await fetch(`${baseUrl}/api/v1/academic/students?section_id=${selectedSectionId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // Initialize all as present for the BookMyShow style
+          setStudents(data.map((s: any) => ({ ...s, present: true })));
+        }
+      } catch (error) {
+        console.error("Failed to fetch students", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStudents();
+  }, [token, selectedSectionId]);
+
+  const toggleAttendance = (id: number) => {
     setStudents(students.map(s => s.id === id ? { ...s, present: !s.present } : s));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!token || !selectedSectionId) return;
     const absentIds = students.filter(s => !s.present).map(s => s.id);
-    // Simulate POST /api/v1/attendance/submit/smart
-    console.log("Submitting absent IDs to /submit/smart:", absentIds);
-    alert(`Attendance saved! Triggering SMS to ${absentIds.length} absent students.`);
+    
+    setIsSubmitting(true);
+    try {
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const res = await fetch(`${baseUrl}/api/v1/attendance/submit/smart`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          section_id: parseInt(selectedSectionId),
+          date: new Date().toISOString().split('T')[0],
+          absent_student_ids: absentIds
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        alert(`Attendance saved! SMS notifications have been triggered for the ${data.absent_count} absent students.`);
+      } else {
+        alert("Failed to submit attendance");
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const presentCount = students.filter(s => s.present).length;
@@ -35,27 +109,21 @@ export default function FacultyDashboard() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Mark Attendance</h1>
-          <p className="text-muted-foreground mt-1">Select class and subject to record today's attendance.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            Mark Attendance <Zap className="w-5 h-5 text-indigo-500 fill-indigo-500" />
+          </h1>
+          <p className="text-muted-foreground mt-1">Select section to record today's attendance.</p>
         </div>
         <div className="flex items-center gap-3">
           <select 
-            value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
-            className="bg-background border border-input rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring"
+            value={selectedSectionId}
+            onChange={(e) => setSelectedSectionId(e.target.value)}
+            className="bg-background border border-input rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring min-w-[200px]"
           >
-            <option value="10th-A">Class 10 - Section A</option>
-            <option value="10th-B">Class 10 - Section B</option>
-            <option value="11th-Sci">Class 11 - Science</option>
-          </select>
-          <select 
-            value={selectedSubject}
-            onChange={(e) => setSelectedSubject(e.target.value)}
-            className="bg-background border border-input rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <option value="Mathematics">Mathematics</option>
-            <option value="Physics">Physics</option>
-            <option value="Chemistry">Chemistry</option>
+            {sections.length === 0 ? <option value="">No Assigned Sections</option> : null}
+            {sections.map(s => (
+              <option key={s.id} value={s.id}>{s.name} (Section ID: {s.id})</option>
+            ))}
           </select>
         </div>
       </div>
@@ -91,45 +159,64 @@ export default function FacultyDashboard() {
       </div>
 
       <div className="bg-card border rounded-xl shadow-sm overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b border-border bg-secondary/30 flex justify-between items-center">
+        <div className="px-6 py-4 border-b border-border bg-secondary/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Student Roster</h2>
-          <div className="text-xs font-medium text-muted-foreground bg-background px-3 py-1 rounded-full border">
-            Click on a student's status to mark them absent.
+          <div className="text-xs font-medium text-muted-foreground bg-background px-3 py-1.5 rounded-md border flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-red-500"></div>
+            Click on a student's seat to mark them absent.
           </div>
         </div>
-        <div className="p-6">
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
-            {students.map((student) => (
-              <button
-                key={student.id}
-                onClick={() => toggleAttendance(student.id)}
-                className={`
-                  relative aspect-square flex flex-col items-center justify-center rounded-xl border-2 transition-all duration-200 group
-                  ${student.present 
-                    ? 'bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400 hover:bg-green-500/20' 
-                    : 'bg-red-500 border-red-600 text-white shadow-lg shadow-red-500/20 scale-95'
-                  }
-                `}
-              >
-                <span className="font-bold text-lg">{student.roll}</span>
-                {student.name && (
-                  <span className={`text-[10px] truncate w-full px-1 absolute bottom-2 text-center opacity-70 group-hover:opacity-100 transition-opacity ${student.present ? '' : 'text-white'}`}>
-                    {student.name.split(' ')[0]}
-                  </span>
-                )}
-                {!student.present && (
-                  <X className="absolute top-1 right-1 w-3 h-3 text-white/70" />
-                )}
-              </button>
-            ))}
-          </div>
+        
+        <div className="p-8">
+          {isLoading ? (
+            <div className="text-center py-12 text-muted-foreground">Loading roster...</div>
+          ) : students.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">
+              No students found in this section. Ask Management to onboard them.
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-3">
+              {students.map((student) => (
+                <button
+                  key={student.id}
+                  onClick={() => toggleAttendance(student.id)}
+                  title={student.name && student.name !== "Not Provided" ? student.name : "Student Details Pending"}
+                  className={`
+                    relative aspect-square flex flex-col items-center justify-center rounded-xl border-2 transition-all duration-200 group
+                    ${student.present 
+                      ? 'bg-green-500/5 border-green-500/30 text-green-700 dark:text-green-400 hover:bg-green-500/10 hover:border-green-500/50 hover:-translate-y-0.5 shadow-sm' 
+                      : 'bg-red-500 border-red-600 text-white shadow-md shadow-red-500/20 scale-95'
+                    }
+                  `}
+                >
+                  <span className="font-bold text-lg md:text-xl">{student.roll_number}</span>
+                  
+                  {/* Tooltip for hover */}
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                    {student.name && student.name !== "Not Provided" ? student.name : "Name Pending"}
+                  </div>
+                  
+                  {student.name && student.name !== "Not Provided" && (
+                    <span className={`text-[10px] md:text-xs truncate w-full px-1 absolute bottom-2 text-center opacity-70 group-hover:opacity-100 transition-opacity ${student.present ? '' : 'text-white'}`}>
+                      {student.name.split(' ')[0]}
+                    </span>
+                  )}
+                  {!student.present && (
+                    <X className="absolute top-1 right-1 w-3 h-3 text-white/80" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+        
         <div className="px-6 py-4 border-t border-border bg-secondary/30 flex justify-end">
           <button 
             onClick={handleSave}
-            className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm"
+            disabled={isSubmitting || students.length === 0}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
           >
-            <Save className="w-4 h-4" /> Save Attendance
+            {isSubmitting ? "Submitting..." : <><Save className="w-5 h-5" /> Submit Attendance</>}
           </button>
         </div>
       </div>
