@@ -20,10 +20,11 @@ def get_today_stats(
     from sqlalchemy import func
     today = date.today()
     
-    # Total students in tenant
+    from app.models.academic import Section
+    # Total students in tenant (joining Section instead of User because user_id can be NULL)
     total_students = db.query(func.count(StudentProfile.id)) \
-        .join(User, StudentProfile.user_id == User.id) \
-        .filter(User.tenant_id == current_management.tenant_id).scalar() or 0
+        .join(Section, StudentProfile.section_id == Section.id) \
+        .filter(Section.tenant_id == current_management.tenant_id).scalar() or 0
         
     # Attendance for today
     attendance_records = db.query(AttendanceRecord).filter(
