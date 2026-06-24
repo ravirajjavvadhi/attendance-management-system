@@ -91,11 +91,15 @@ export default function FacultyDashboard() {
     setStudents(students.map(s => s.id === id ? { ...s, present: !s.present } : s));
   };
 
+  const [submitStatus, setSubmitStatus] = useState<{type: 'success'|'error'|null, message: string}>({type: null, message: ''});
+
   const handleSave = async () => {
     if (!token || !selectedSectionId) return;
     const absentIds = students.filter(s => !s.present).map(s => s.id);
     
     setIsSubmitting(true);
+    setSubmitStatus({type: null, message: ''});
+    
     try {
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/attendance/submit/smart`, {
@@ -109,12 +113,25 @@ export default function FacultyDashboard() {
       });
       if (res.ok) {
         const data = await res.json();
-        alert(`Attendance saved! SMS notifications have been triggered for the ${data.absent_count} absent students.`);
+        setSubmitStatus({
+          type: 'success', 
+          message: `Attendance saved successfully! SMS notifications have been triggered for ${data.absent_count} absent students.`
+        });
+        
+        // Auto-hide success message after 5 seconds
+        setTimeout(() => setSubmitStatus({type: null, message: ''}), 5000);
       } else {
-        alert("Failed to submit attendance");
+        setSubmitStatus({
+          type: 'error', 
+          message: "Failed to submit attendance. Please try again."
+        });
       }
     } catch (error) {
       console.error(error);
+      setSubmitStatus({
+        type: 'error', 
+        message: "Network error occurred while saving attendance."
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -184,6 +201,13 @@ export default function FacultyDashboard() {
             Click on a student's seat to mark them absent.
           </div>
         </div>
+        
+        {submitStatus.type && (
+          <div className={`mx-6 mt-4 p-4 rounded-lg flex items-center gap-3 ${submitStatus.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+            {submitStatus.type === 'success' ? <Check className="w-5 h-5 text-green-500" /> : <X className="w-5 h-5 text-red-500" />}
+            <p className="text-sm font-medium">{submitStatus.message}</p>
+          </div>
+        )}
         
         <div className="p-8">
           {isLoading ? (
