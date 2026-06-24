@@ -246,6 +246,7 @@ export default function SmsGatewayPage() {
               </div>
               <p className="text-xs text-muted-foreground text-center mt-2">Analytics update in real-time as your devices process the SMS queue.</p>
             </div>
+          </div>
         </div>
       </div>
     </div>
