@@ -30,9 +30,14 @@ try:
     with engine.connect() as conn:
         # Drop the old notification_logs table so create_all recreates it with the new schema (channel, recipient, provider_response)
         conn.execute(text("DROP TABLE IF EXISTS notification_logs CASCADE"))
+        
+        # Fix foreign key bug in attendance_records
+        conn.execute(text("ALTER TABLE attendance_records DROP CONSTRAINT IF EXISTS attendance_records_student_id_fkey"))
+        conn.execute(text("ALTER TABLE attendance_records ADD CONSTRAINT attendance_records_student_id_fkey FOREIGN KEY (student_id) REFERENCES student_profiles(id)"))
+        
         conn.commit()
 except Exception as e:
-    print("Drop table error:", e)
+    print("DB Migration error:", e)
 
 Base.metadata.create_all(bind=engine)
 

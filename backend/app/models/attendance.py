@@ -7,7 +7,7 @@ class AttendanceRecord(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False, index=True)
-    student_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("student_profiles.id"), nullable=False)
     section_id = Column(Integer, ForeignKey("sections.id"), nullable=False)
     date = Column(Date, nullable=False, index=True)
     is_present = Column(Boolean, default=True)
