@@ -76,12 +76,25 @@ def queue_sms(student_id: int, date: str, tenant_id: int):
             db.add(log)
         else:
             log_status = "PENDING"
+            # Fetch Institution Name
+            from app.models.tenant import Institution
+            institution = db.query(Institution).filter(Institution.id == tenant_id).first()
+            institution_name = institution.name if institution else "Our Institution"
+            
             # Fetch Institution's Custom SMS Template
             template = db.query(SMSTemplate).filter(SMSTemplate.tenant_id == tenant_id).first()
             if template:
                 message = template.absent_message.replace("{name}", student_name).replace("{roll_no}", roll_number)
             else:
-                message = f"Dear Parent, {student_name} (Roll No: {roll_number}) is absent today."
+                message = (
+                    "Attendance Alert\n\n"
+                    "Dear Parent/Guardian,\n\n"
+                    f"{student_name} ({roll_number}) has been recorded absent on {date}.\n\n"
+                    f"Institution: {institution_name}\n\n"
+                    "For any clarification, please contact the institution administration.\n\n"
+                    "Regards,\n"
+                    f"{institution_name}"
+                )
             
             # Queue the SMS for the Android Gateway
             queue_item = SmsQueue(
