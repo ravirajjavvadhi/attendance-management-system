@@ -16,7 +16,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.eduflowsmsgateway.theme.EduFlowSMSGatewayTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val viewModel: GatewayViewModel by viewModels()
 
@@ -109,18 +111,38 @@ fun PairingScreen(viewModel: GatewayViewModel) {
 }
 
 @Composable
-fun DashboardScreen(onUnpair: () -> Unit) {
+fun DashboardScreen(viewModel: GatewayViewModel, onUnpair: () -> Unit) {
+    val pendingCount by viewModel.pendingCount.collectAsStateWithLifecycle(initialValue = 0)
+    val sentCount by viewModel.sentCount.collectAsStateWithLifecycle(initialValue = 0)
+    val failedCount by viewModel.failedCount.collectAsStateWithLifecycle(initialValue = 0)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text("Gateway Active", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(16.dp))
-        Text("This device is successfully paired to EduFlow AI and is currently polling for SMS messages in the background.", textAlign = TextAlign.Center)
+        Text("This device is successfully paired and actively polling.", textAlign = TextAlign.Center)
         
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Diagnostic Metrics Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Diagnostic Mode (Local Room DB)", fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Messages in Local Queue: $pendingCount")
+                Text("Successfully Dispatched: $sentCount", color = androidx.compose.ui.graphics.Color(0xFF2E7D32))
+                Text("Failed Dispatches: $failedCount", color = MaterialTheme.colorScheme.error)
+            }
+        }
+
         Spacer(modifier = Modifier.height(48.dp))
 
         Button(

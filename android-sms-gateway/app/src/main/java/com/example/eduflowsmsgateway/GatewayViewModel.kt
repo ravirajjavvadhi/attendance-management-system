@@ -1,25 +1,32 @@
 package com.example.eduflowsmsgateway
 
-import android.app.Application
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.eduflowsmsgateway.api.ApiClient
 import com.example.eduflowsmsgateway.api.RegisterDeviceRequest
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class GatewayViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val sessionManager = SessionManager(application)
+@HiltViewModel
+class GatewayViewModel @Inject constructor(
+    private val sessionManager: SessionManager,
+    private val smsDao: com.example.eduflowsmsgateway.data.SmsDao
+) : ViewModel() {
 
     private val _isPaired = MutableStateFlow(sessionManager.isPaired())
     val isPaired: StateFlow<Boolean> = _isPaired.asStateFlow()
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    val pendingCount = smsDao.getPendingCountFlow()
+    val sentCount = smsDao.getSentCountFlow()
+    val failedCount = smsDao.getFailedCountFlow()
 
     fun pairDevice(pairingToken: String) {
         viewModelScope.launch {

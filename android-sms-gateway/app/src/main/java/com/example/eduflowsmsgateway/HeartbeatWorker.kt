@@ -4,16 +4,22 @@ import android.content.Context
 import android.os.BatteryManager
 import android.telephony.TelephonyManager
 import android.util.Log
+import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.eduflowsmsgateway.api.ApiClient
 import com.example.eduflowsmsgateway.api.HeartbeatRequest
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 
-class HeartbeatWorker(appContext: Context, workerParams: WorkerParameters) :
-    CoroutineWorker(appContext, workerParams) {
+@HiltWorker
+class HeartbeatWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val sessionManager: SessionManager
+) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        val sessionManager = SessionManager(applicationContext)
 
         if (!sessionManager.isPaired()) {
             return Result.success()

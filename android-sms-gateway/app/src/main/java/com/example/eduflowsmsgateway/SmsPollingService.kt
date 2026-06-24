@@ -9,21 +9,31 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import android.telephony.SmsManager
+import android.telephony.SubscriptionManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.eduflowsmsgateway.api.ApiClient
 import com.example.eduflowsmsgateway.api.SmsStatusUpdateRequest
+import com.example.eduflowsmsgateway.data.SmsDao
+import com.example.eduflowsmsgateway.data.SmsEntity
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class SmsPollingService : Service() {
 
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + job)
-    private lateinit var sessionManager: SessionManager
+
+    @Inject
+    lateinit var sessionManager: SessionManager
+
+    @Inject
+    lateinit var smsDao: SmsDao
 
     override fun onCreate() {
         super.onCreate()
-        sessionManager = SessionManager(this)
         createNotificationChannel()
         startForeground(1, buildNotification())
     }
@@ -37,14 +47,15 @@ class SmsPollingService : Service() {
         scope.launch {
             while (isActive) {
                 if (sessionManager.isPaired()) {
-                    pollAndSend()
+                    pollBackendForNewSms()
+                    processLocalQueue()
                 }
                 delay(15000) // Poll every 15 seconds
             }
         }
     }
 
-    private suspend fun pollAndSend() {
+    private suspend fun pollBackendForNewSms() {
         try {
             val token = "Bearer ${sessionManager.getAuthToken()}"
             val deviceUuid = sessionManager.getDeviceUuid()
@@ -52,48 +63,80 @@ class SmsPollingService : Service() {
             val response = ApiClient.apiService.getPendingSms(token, deviceUuid)
             if (response.isSuccessful) {
                 val pendingList = response.body() ?: emptyList()
-                for (sms in pendingList) {
-                    sendSms(sms.id, sms.recipientPhone, sms.message, token, deviceUuid)
-                    delay(2000) // Delay between sending SMS to avoid carrier spam filters
+                if (pendingList.isNotEmpty()) {
+                    val entities = pendingList.map { 
+                        SmsEntity(id = it.id, recipientPhone = it.recipientPhone, message = it.message, status = "PENDING") 
+                    }
+                    smsDao.insertAll(entities)
+                    Log.d("SmsPolling", "Saved ${entities.size} SMS to Room DB")
                 }
             }
         } catch (e: Exception) {
-            Log.e("SmsPolling", "Error polling", e)
+            Log.e("SmsPolling", "Error polling backend (offline?)", e)
         }
     }
 
-    private suspend fun sendSms(smsId: Int, phone: String, message: String, token: String, deviceUuid: String) {
+    private suspend fun processLocalQueue() {
+        val pendingSms = smsDao.getPendingSms()
+        val token = "Bearer ${sessionManager.getAuthToken()}"
+        val deviceUuid = sessionManager.getDeviceUuid()
+
+        for (sms in pendingSms) {
+            sendSms(sms, token, deviceUuid)
+            delay(2000) // Delay between sending SMS to avoid carrier spam filters
+        }
+    }
+
+    private suspend fun sendSms(sms: SmsEntity, token: String, deviceUuid: String) {
         var status = "FAILED"
         var errorMessage: String? = null
 
         try {
-            val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                applicationContext.getSystemService(SmsManager::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                SmsManager.getDefault()
-            }
+            // Enterprise enhancement: Dual SIM support & Multipart Unicode
+            val smsManager: SmsManager = getSmsManager()
 
-            val parts = smsManager.divideMessage(message)
-            smsManager.sendMultipartTextMessage(phone, null, parts, null, null)
+            val parts = smsManager.divideMessage(sms.message)
+            smsManager.sendMultipartTextMessage(sms.recipientPhone, null, parts, null, null)
             status = "SENT"
         } catch (e: Exception) {
             Log.e("SmsPolling", "Error sending SMS", e)
             errorMessage = e.localizedMessage
         }
 
+        // Update local Room database
+        smsDao.updateStatus(sms.id, status)
+
+        // Try to sync with backend
         try {
             ApiClient.apiService.updateSmsStatus(
                 token,
                 SmsStatusUpdateRequest(
                     deviceUuid = deviceUuid,
-                    smsId = smsId,
+                    smsId = sms.id,
                     status = status,
                     errorMessage = errorMessage
                 )
             )
         } catch (e: Exception) {
-            Log.e("SmsPolling", "Error updating status", e)
+            Log.e("SmsPolling", "Error syncing status to backend", e)
+            // It's okay, it remains updated in the local DB. We can build a sync worker later.
+        }
+    }
+
+    private fun getSmsManager(): SmsManager {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val subscriptionManager = applicationContext.getSystemService(SubscriptionManager::class.java)
+            val activeSubscriptionInfoList = subscriptionManager.activeSubscriptionInfoList
+            
+            if (!activeSubscriptionInfoList.isNullOrEmpty()) {
+                // If dual SIM, default to SIM 1 (index 0). Can be configured via UI in future.
+                val subscriptionId = activeSubscriptionInfoList[0].subscriptionId
+                return applicationContext.getSystemService(SmsManager::class.java).createForSubscriptionId(subscriptionId)
+            }
+            return applicationContext.getSystemService(SmsManager::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            return SmsManager.getDefault()
         }
     }
 
