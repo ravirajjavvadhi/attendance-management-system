@@ -17,16 +17,29 @@ export default function FacultyDashboard() {
 
   const [sections, setSections] = useState<any[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState("");
+  const [periodsPerDay, setPeriodsPerDay] = useState(0);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("1");
   
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const fetchSections = async () => {
+    const fetchSettingsAndSections = async () => {
       if (!token) return;
       try {
         const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+        
+        // Fetch Settings
+        const settingsRes = await fetch(`${baseUrl}/api/v1/institution/me/settings`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (settingsRes.ok) {
+          const settingsData = await settingsRes.json();
+          setPeriodsPerDay(settingsData.periods_per_day || 0);
+        }
+
+        // Fetch Sections
         const res = await fetch(`${baseUrl}/api/v1/academic/sections`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -38,12 +51,12 @@ export default function FacultyDashboard() {
           }
         }
       } catch (error) {
-        console.error("Failed to fetch sections", error);
+        console.error("Failed to fetch data", error);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchSections();
+    fetchSettingsAndSections();
   }, [token]);
 
   useEffect(() => {
@@ -58,7 +71,8 @@ export default function FacultyDashboard() {
         
         // Fetch existing attendance records for today if already submitted
         const today = new Date().toISOString().split('T')[0];
-        const attRes = await fetch(`${baseUrl}/api/v1/attendance/report?section_id=${selectedSectionId}&report_date=${today}`, {
+        const periodQuery = periodsPerDay > 0 ? `&period=${selectedPeriod}` : '';
+        const attRes = await fetch(`${baseUrl}/api/v1/attendance/report?section_id=${selectedSectionId}&report_date=${today}${periodQuery}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -85,7 +99,7 @@ export default function FacultyDashboard() {
       }
     };
     fetchStudents();
-  }, [token, selectedSectionId]);
+  }, [token, selectedSectionId, periodsPerDay, selectedPeriod]);
 
   const toggleAttendance = (id: number) => {
     setStudents(students.map(s => s.id === id ? { ...s, present: !s.present } : s));
@@ -102,14 +116,21 @@ export default function FacultyDashboard() {
     
     try {
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-afk0.onrender.com").replace(/\/$/, "");
+      
+      const payload: any = {
+        section_id: parseInt(selectedSectionId),
+        date: new Date().toISOString().split('T')[0],
+        absent_student_ids: absentIds
+      };
+      
+      if (periodsPerDay > 0) {
+        payload.period = parseInt(selectedPeriod);
+      }
+      
       const res = await fetch(`${baseUrl}/api/v1/attendance/submit/smart`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          section_id: parseInt(selectedSectionId),
-          date: new Date().toISOString().split('T')[0],
-          absent_student_ids: absentIds
-        })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         const data = await res.json();
@@ -160,6 +181,17 @@ export default function FacultyDashboard() {
               <option key={s.id} value={s.id}>{s.name} (Section ID: {s.id})</option>
             ))}
           </select>
+          {periodsPerDay > 0 && (
+            <select
+              value={selectedPeriod}
+              onChange={(e) => setSelectedPeriod(e.target.value)}
+              className="bg-background border border-input rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring min-w-[120px]"
+            >
+              {Array.from({ length: periodsPerDay }, (_, i) => i + 1).map(p => (
+                <option key={p} value={p}>Period {p}</option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
       

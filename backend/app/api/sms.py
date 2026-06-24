@@ -96,18 +96,19 @@ def update_sms_status(request: SmsStatusUpdateRequest, db: Session = Depends(get
 @router.get("/stats")
 def get_sms_stats(db: Session = Depends(get_db), current_management: User = Depends(get_current_management_or_faculty)):
     from sqlalchemy import func
-    from datetime import date
+    from zoneinfo import ZoneInfo
+    from datetime import datetime
     
-    today = date.today()
+    today_ist = datetime.now(ZoneInfo("Asia/Kolkata")).date()
     
-    # Get sent/failed stats from NotificationLog for today
+    # Get sent/failed stats from NotificationLog for today in IST
     log_stats = db.query(
         NotificationLog.status,
         func.count(NotificationLog.id)
     ).filter(
         NotificationLog.tenant_id == current_management.tenant_id,
         NotificationLog.channel == "SMS",
-        func.date(NotificationLog.created_at) == today
+        func.date(func.timezone('Asia/Kolkata', NotificationLog.created_at)) == today_ist
     ).group_by(NotificationLog.status).all()
     
     stat_dict = {status: count for status, count in log_stats}

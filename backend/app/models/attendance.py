@@ -10,5 +10,6 @@ class AttendanceRecord(Base):
     student_id = Column(Integer, ForeignKey("student_profiles.id"), nullable=False)
     section_id = Column(Integer, ForeignKey("sections.id"), nullable=False)
     date = Column(Date, nullable=False, index=True)
+    period = Column(Integer, nullable=True, index=True) # For period-wise attendance
     is_present = Column(Boolean, default=True)
     marked_by = Column(Integer, ForeignKey("users.id")) # Faculty ID

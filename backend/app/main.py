@@ -35,6 +35,11 @@ try:
         conn.execute(text("ALTER TABLE attendance_records DROP CONSTRAINT IF EXISTS attendance_records_student_id_fkey"))
         conn.execute(text("ALTER TABLE attendance_records ADD CONSTRAINT attendance_records_student_id_fkey FOREIGN KEY (student_id) REFERENCES student_profiles(id)"))
         
+        # Add new period and notification preference columns
+        conn.execute(text("ALTER TABLE institutions ADD COLUMN IF NOT EXISTS periods_per_day INTEGER DEFAULT 0"))
+        conn.execute(text("ALTER TABLE institutions ADD COLUMN IF NOT EXISTS notification_preference VARCHAR DEFAULT 'PARENT'"))
+        conn.execute(text("ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS period INTEGER"))
+        
         conn.commit()
 except Exception as e:
     print("DB Migration error:", e)

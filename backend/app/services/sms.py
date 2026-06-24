@@ -45,7 +45,7 @@ def send_email(to_email: str, subject: str, body: str, recipient_id: int, tenant
     
     return {"status": status}
 
-def queue_sms(student_id: int, date: str, tenant_id: int):
+def queue_sms(student_id: int, date: str, tenant_id: int, period: int = None):
     """
     Background worker that formats the custom SMS for a student's absence and
     queues it for the Android SIM gateway. Will silently catch missing phone numbers.
@@ -86,15 +86,24 @@ def queue_sms(student_id: int, date: str, tenant_id: int):
             if template:
                 message = template.absent_message.replace("{name}", student_name).replace("{roll_no}", roll_number)
             else:
-                message = (
-                    "Attendance Alert\n\n"
-                    "Dear Parent/Guardian,\n\n"
-                    f"{student_name} ({roll_number}) has been recorded absent on {date}.\n\n"
-                    f"Institution: {institution_name}\n\n"
-                    "For any clarification, please contact the institution administration.\n\n"
-                    "Regards,\n"
-                    f"{institution_name}"
-                )
+                if period is not None:
+                    message = (
+                        "Attendance Alert\n\n"
+                        "Dear Parent/Guardian,\n\n"
+                        f"{student_name} ({roll_number}) was absent during Period {period} on {date}.\n\n"
+                        f"Institution: {institution_name}\n\n"
+                        "Regards,\n"
+                        f"{institution_name}"
+                    )
+                else:
+                    message = (
+                        "Attendance Alert\n\n"
+                        "Dear Parent/Guardian,\n\n"
+                        f"{student_name} ({roll_number}) has been recorded absent on {date}.\n\n"
+                        f"Institution: {institution_name}\n\n"
+                        "Regards,\n"
+                        f"{institution_name}"
+                    )
             
             # Queue the SMS for the Android Gateway
             queue_item = SmsQueue(

@@ -147,23 +147,39 @@ def submit_smart_attendance(
     # Get all students in section
     all_students = db.query(StudentProfile).filter(StudentProfile.section_id == attendance_data.section_id).all()
     
+    newly_absent_ids = []
+    
     for student in all_students:
         is_present = student.id not in attendance_data.absent_student_ids
         
-        db_record = db.query(AttendanceRecord).filter(
+        query = db.query(AttendanceRecord).filter(
             AttendanceRecord.student_id == student.id,
             AttendanceRecord.date == attendance_data.date
-        ).first()
+        )
+        if attendance_data.period is not None:
+            query = query.filter(AttendanceRecord.period == attendance_data.period)
+        else:
+            query = query.filter(AttendanceRecord.period == None)
+            
+        db_record = query.first()
         
         if db_record:
+            # If they were previously present, but now absent, they are newly absent!
+            if db_record.is_present and not is_present:
+                newly_absent_ids.append(student.id)
+            
             db_record.is_present = is_present
             db_record.marked_by = current_faculty.id
         else:
+            if not is_present:
+                newly_absent_ids.append(student.id)
+                
             new_record = AttendanceRecord(
                 tenant_id=current_faculty.tenant_id,
                 student_id=student.id,
                 section_id=attendance_data.section_id,
                 date=attendance_data.date,
+                period=attendance_data.period,
                 is_present=is_present,
                 marked_by=current_faculty.id
             )
@@ -171,11 +187,11 @@ def submit_smart_attendance(
             
     db.commit()
     
-    # Trigger background SMS for absentees only
-    for student_id in attendance_data.absent_student_ids:
-        background_tasks.add_task(queue_sms, student_id, str(attendance_data.date), current_faculty.tenant_id)
+    # Trigger background SMS for newly added absentees only
+    for student_id in newly_absent_ids:
+        background_tasks.add_task(queue_sms, student_id, str(attendance_data.date), current_faculty.tenant_id, attendance_data.period)
 
-    return {"message": "Smart Attendance saved successfully", "absent_count": len(attendance_data.absent_student_ids)}
+    return {"message": "Smart Attendance saved successfully", "absent_count": len(newly_absent_ids)}
 
 @router.get("/report")
 def get_attendance_report(

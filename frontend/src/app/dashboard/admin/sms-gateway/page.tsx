@@ -246,17 +246,6 @@ export default function SmsGatewayPage() {
               </div>
               <p className="text-xs text-muted-foreground text-center mt-2">Analytics update in real-time as your devices process the SMS queue.</p>
             </div>
-          </div>
-          
-          <div className="bg-card border rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-orange-500" />
-              Mock Simulator Mode
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              The SMS Simulator is currently running in the background. It will automatically process messages in the queue to mock an active Android device for testing purposes.
-            </p>
-          </div>
         </div>
       </div>
     </div>

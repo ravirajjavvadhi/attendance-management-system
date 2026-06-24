@@ -134,3 +134,16 @@ def read_institution(
     if institution is None:
         raise HTTPException(status_code=404, detail="Institution not found")
     return institution
+
+@router.get("/me/settings")
+def read_my_institution_settings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    institution = db.query(Institution).filter(Institution.id == current_user.tenant_id).first()
+    if institution is None:
+        raise HTTPException(status_code=404, detail="Institution not found")
+    return {
+        "periods_per_day": getattr(institution, "periods_per_day", 0),
+        "notification_preference": getattr(institution, "notification_preference", "PARENT")
+    }

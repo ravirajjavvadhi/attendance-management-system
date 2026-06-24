@@ -14,4 +14,5 @@ class AttendanceSubmit(BaseModel):
 class SmartAttendanceSubmit(BaseModel):
     section_id: int
     date: date
+    period: int = None
     absent_student_ids: List[int]
