@@ -8,6 +8,14 @@ from app.db.database import engine, Base
 from app.models import user, tenant, academic, attendance, notification, profiles
 
 # Auto-create all tables in the database if they don't exist
+from sqlalchemy import text
+try:
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE faculty_profiles ADD COLUMN access_level VARCHAR DEFAULT 'ASSIGNED_SECTION_ACCESS'"))
+        conn.commit()
+except Exception:
+    pass
+
 Base.metadata.create_all(bind=engine)
 
 # Enable CORS for production (Vercel) and local development
