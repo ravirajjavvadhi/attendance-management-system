@@ -82,13 +82,40 @@ def get_today_stats(
             "time": log.created_at.strftime("%I:%M %p") if log.created_at else ""
         })
 
+    # Section-wise absent counts
+    from app.models.academic import Class
+    section_absent_stats = db.query(
+        Class.name.label("class_name"),
+        Section.name.label("section_name"),
+        func.count(AttendanceRecord.id)
+    ).join(Section, AttendanceRecord.section_id == Section.id) \
+     .outerjoin(Class, Section.class_id == Class.id) \
+     .filter(
+        Section.tenant_id == current_management.tenant_id,
+        AttendanceRecord.date == today,
+        AttendanceRecord.is_present == False
+    ).group_by(Class.name, Section.name).all()
+    
+    section_absent_counts = []
+    for cls_name, sec_name, count in section_absent_stats:
+        # Format the name based on whether class exists
+        name = f"{cls_name}-{sec_name}" if cls_name else sec_name
+        section_absent_counts.append({
+            "section": name,
+            "absent": count
+        })
+        
+    # Sort descending by absent count
+    section_absent_counts.sort(key=lambda x: x["absent"], reverse=True)
+
     return {
         "total_students": total_students,
         "present_today": present_today,
         "absent_today": absent_today,
         "attendance_rate": f"{(present_today / total_students * 100):.1f}%" if total_students > 0 else "0%",
         "alerts": alerts[:5], # top 5 lowest
-        "notifications": notifications
+        "notifications": notifications,
+        "section_absent_counts": section_absent_counts
     }
 
 @router.post("/submit")

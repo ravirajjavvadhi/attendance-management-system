@@ -14,7 +14,8 @@ export default function PrincipalDashboard() {
     absent_today: 0,
     attendance_rate: "0%",
     alerts: [],
-    notifications: []
+    notifications: [],
+    section_absent_counts: []
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -79,6 +80,31 @@ export default function PrincipalDashboard() {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Attendance Today Section */}
+            <div className="bg-card border rounded-xl shadow-sm overflow-hidden flex flex-col">
+              <div className="px-6 py-5 border-b border-border">
+                <h2 className="text-lg font-semibold">Attendance Today</h2>
+              </div>
+              <div className="p-6">
+                {!stats.section_absent_counts || stats.section_absent_counts.length === 0 ? (
+                  <div className="text-center text-muted-foreground text-sm py-8">
+                    No absentees reported yet today.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {stats.section_absent_counts.map((item: any, i: number) => (
+                      <div key={i} className="flex justify-between items-center border-b border-border pb-3 last:border-0 last:pb-0">
+                        <span className="font-medium text-foreground">{item.section}</span>
+                        <span className="text-red-500 font-semibold bg-red-500/10 px-3 py-1 rounded-full text-xs">
+                          {item.absent} Absent
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="col-span-2 bg-card border rounded-xl shadow-sm overflow-hidden flex flex-col">
               <div className="px-6 py-5 border-b border-border flex justify-between items-center">
                 <h2 className="text-lg font-semibold">Low Attendance Alerts</h2>
@@ -112,7 +138,9 @@ export default function PrincipalDashboard() {
                 )}
               </div>
             </div>
+          </div>
             
+          <div className="grid grid-cols-1 gap-6">
             <div className="bg-card border rounded-xl shadow-sm overflow-hidden flex flex-col">
               <div className="px-6 py-5 border-b border-border">
                 <h2 className="text-lg font-semibold">Recent Notifications</h2>
