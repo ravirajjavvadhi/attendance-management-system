@@ -2,10 +2,20 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.api import api_router
 
-app = FastAPI(title="EduFlow AI API", description="Smart Academic Operations & Attendance Automation Platform")
+from contextlib import asynccontextmanager
+from app.services.simulator import start_simulator
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Start SMS Simulator Background Task
+    start_simulator()
+    yield
+    # Shutdown
+
+app = FastAPI(title="EduFlow AI API", description="Smart Academic Operations & Attendance Automation Platform", lifespan=lifespan)
 
 from app.db.database import engine, Base
-from app.models import user, tenant, academic, attendance, notification, profiles
+from app.models import user, tenant, academic, attendance, notification, profiles, device, sms
 
 # Auto-create all tables in the database if they don't exist
 from sqlalchemy import text

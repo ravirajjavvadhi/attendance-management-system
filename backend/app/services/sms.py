@@ -3,6 +3,7 @@ from email.message import EmailMessage
 from app.core.config import settings
 from app.db.database import SessionLocal
 from app.models.notification import NotificationLog, SMSTemplate
+from app.models.sms import SmsQueue
 from app.models.profiles import StudentProfile
 
 def send_email(to_email: str, subject: str, body: str, recipient_id: int, tenant_id: int):
@@ -31,11 +32,11 @@ def send_email(to_email: str, subject: str, body: str, recipient_id: int, tenant
     try:
         log = NotificationLog(
             tenant_id=tenant_id,
-            user_id=recipient_id,
-            type="EMAIL",
+            channel="EMAIL",
+            recipient=to_email,
             status=status,
-            content=f"Subject: {subject}\n\n{body}",
-            error_message=error_msg
+            message=f"Subject: {subject}\n\n{body}",
+            provider_response=error_msg
         )
         db.add(log)
         db.commit()
@@ -63,6 +64,16 @@ def queue_sms(student_id: int, date: str, tenant_id: int):
         if not profile.parent_mobile:
             log_status = "FAILED_MISSING_NUMBER"
             message = f"Failed to send SMS to {student_name} ({roll_number}): No parent mobile number provided."
+            # Only create a failed log
+            log = NotificationLog(
+                tenant_id=tenant_id,
+                channel="SMS",
+                recipient="Unknown",
+                status="FAILED",
+                message=message,
+                provider_response="Missing parent mobile number"
+            )
+            db.add(log)
         else:
             log_status = "PENDING"
             # Fetch Institution's Custom SMS Template
@@ -71,15 +82,28 @@ def queue_sms(student_id: int, date: str, tenant_id: int):
                 message = template.absent_message.replace("{name}", student_name).replace("{roll_no}", roll_number)
             else:
                 message = f"Dear Parent, {student_name} (Roll No: {roll_number}) is absent today."
-        
-        log = NotificationLog(
-            tenant_id=tenant_id,
-            user_id=student_id,
-            type="SMS",
-            status=log_status,
-            content=message
-        )
-        db.add(log)
+            
+            # Queue the SMS for the Android Gateway
+            queue_item = SmsQueue(
+                tenant_id=tenant_id,
+                recipient_name=student_name,
+                recipient_phone=profile.parent_mobile,
+                message=message,
+                status="PENDING",
+                source_module="ATTENDANCE"
+            )
+            db.add(queue_item)
+            
+            # Also log it
+            log = NotificationLog(
+                tenant_id=tenant_id,
+                channel="SMS",
+                recipient=profile.parent_mobile,
+                status="PENDING",
+                message=message
+            )
+            db.add(log)
+            
         db.commit()
         return {"status": log_status}
     finally:

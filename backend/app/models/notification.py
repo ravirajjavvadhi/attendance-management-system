@@ -7,13 +7,12 @@ class NotificationLog(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False) # Recipient
-    type = Column(String, nullable=False) # "SMS", "EMAIL", "WHATSAPP"
-    status = Column(String, nullable=False) # "PENDING", "SENT", "FAILED"
-    content = Column(String, nullable=False)
+    channel = Column(String, nullable=False) # "SMS", "EMAIL", "WHATSAPP", "VOICE"
+    recipient = Column(String, nullable=False) # Email address or Phone Number
+    status = Column(String, nullable=False) # "PENDING", "SENT", "FAILED", "DELIVERED"
+    message = Column(String, nullable=False) # The actual content sent
+    provider_response = Column(String, nullable=True) # Response from Gateway or SMTP
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    sent_at = Column(DateTime(timezone=True), nullable=True)
-    error_message = Column(String, nullable=True)
 
 class SMSTemplate(Base):
     __tablename__ = "sms_templates"

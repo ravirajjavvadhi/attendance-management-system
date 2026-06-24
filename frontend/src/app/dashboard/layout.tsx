@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { LayoutDashboard, Users, CalendarCheck, GraduationCap, FileText, LogOut, Settings, BookOpen, Shield } from "lucide-react";
+import { LayoutDashboard, Users, CalendarCheck, GraduationCap, FileText, LogOut, Settings, BookOpen, Shield, Smartphone } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -21,6 +21,7 @@ export default function DashboardLayout({
     { name: "Attendance", href: "/dashboard/faculty", icon: CalendarCheck, roles: ["FACULTY"] },
     { name: "Staff & Faculty", href: "/dashboard/admin/staff", icon: Users, roles: ["MANAGEMENT"] },
     { name: "Students", href: "/dashboard/student", icon: GraduationCap, roles: ["MANAGEMENT", "FACULTY", "STUDENT"] },
+    { name: "SMS Gateway", href: "/dashboard/admin/sms-gateway", icon: Smartphone, roles: ["MANAGEMENT"] },
     { name: "Reports", href: "/dashboard/admin/reports", icon: FileText, roles: ["MANAGEMENT", "SUPERADMIN"] },
   ].filter(item => item.roles.includes(role));
 
