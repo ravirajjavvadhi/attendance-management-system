@@ -20,7 +20,11 @@ def create_faculty(user_in: UserCreate, profile_in: FacultyProfileCreate, db: Se
     from app.models.tenant import Institution
     
     # Check if email/mobile exists
-    db_user = db.query(User).filter((User.email == user_in.email) | (User.mobile_number == user_in.mobile_number)).first()
+    db_user_query = db.query(User).filter(User.email == user_in.email)
+    if user_in.mobile_number:
+        db_user_query = db.query(User).filter((User.email == user_in.email) | (User.mobile_number == user_in.mobile_number))
+    db_user = db_user_query.first()
+    
     if db_user:
         raise HTTPException(status_code=400, detail="User with this email or mobile already exists")
     
@@ -74,7 +78,11 @@ def create_faculty(user_in: UserCreate, profile_in: FacultyProfileCreate, db: Se
 @router.post("/student", response_model=UserOut)
 def create_student(user_in: UserCreate, profile_in: StudentProfileCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_management_or_faculty)):
     # Check if email/mobile exists
-    db_user = db.query(User).filter((User.email == user_in.email) | (User.mobile_number == user_in.mobile_number)).first()
+    db_user_query = db.query(User).filter(User.email == user_in.email)
+    if user_in.mobile_number:
+        db_user_query = db.query(User).filter((User.email == user_in.email) | (User.mobile_number == user_in.mobile_number))
+    db_user = db_user_query.first()
+    
     if db_user:
         raise HTTPException(status_code=400, detail="User with this email or mobile already exists")
     
