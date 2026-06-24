@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 from app.db.database import get_db
@@ -12,7 +12,7 @@ from app.api.deps import get_current_management, get_current_faculty, get_curren
 router = APIRouter()
 
 @router.post("/faculty", response_model=UserOut)
-def create_faculty(user_in: UserCreate, profile_in: FacultyProfileCreate, db: Session = Depends(get_db), current_management: User = Depends(get_current_management)):
+def create_faculty(user_in: UserCreate, profile_in: FacultyProfileCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db), current_management: User = Depends(get_current_management)):
     import secrets
     import string
     from app.services.notification_service import notification_service
@@ -67,10 +67,12 @@ def create_faculty(user_in: UserCreate, profile_in: FacultyProfileCreate, db: Se
         portal_url=portal_url
     )
     
-    notification_service.send_email(
-        to_email=new_user.email,
-        subject="Welcome to EduFlow AI Faculty Portal",
-        html_content=email_content
+    # Send email in the background to prevent slow API response
+    background_tasks.add_task(
+        notification_service.send_email,
+        new_user.email,
+        "Welcome to EduFlow AI Faculty Portal",
+        email_content
     )
     
     return new_user
