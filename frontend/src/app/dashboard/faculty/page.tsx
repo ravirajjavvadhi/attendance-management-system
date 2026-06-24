@@ -55,10 +55,28 @@ export default function FacultyDashboard() {
         const res = await fetch(`${baseUrl}/api/v1/academic/students?section_id=${selectedSectionId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        
+        // Fetch existing attendance records for today if already submitted
+        const today = new Date().toISOString().split('T')[0];
+        const attRes = await fetch(`${baseUrl}/api/v1/attendance/report?section_id=${selectedSectionId}&report_date=${today}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
         if (res.ok) {
           const data = await res.json();
-          // Initialize all as present for the BookMyShow style
-          setStudents(data.map((s: any) => ({ ...s, present: true })));
+          let existingRecords = [];
+          if (attRes.ok) {
+            existingRecords = await attRes.json();
+          }
+          
+          // Merge existing attendance data or default to true
+          setStudents(data.map((s: any) => {
+            const record = existingRecords.find((r: any) => r.student_id === s.id);
+            return {
+              ...s,
+              present: record !== undefined ? record.is_present : true
+            };
+          }));
         }
       } catch (error) {
         console.error("Failed to fetch students", error);
