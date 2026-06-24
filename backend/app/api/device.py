@@ -93,7 +93,7 @@ def register_device(request: DeviceRegisterRequest, db: Session = Depends(get_db
     
     # Generate a JWT for this device
     # We use a custom subject format like "device:<device_id>"
-    access_token = create_access_token(subject=f"device:{device.id}")
+    access_token = create_access_token(data={"sub": f"device:{device.id}"})
     device.jwt_identifier = access_token
     
     db.commit()
