@@ -87,20 +87,25 @@ def get_sms_stats(db: Session = Depends(get_db), current_management: User = Depe
     
     today = date.today()
     
-    # Get stats for today
-    stats = db.query(
-        SmsQueue.status,
-        func.count(SmsQueue.id)
+    # Get sent/failed stats from NotificationLog for today
+    log_stats = db.query(
+        NotificationLog.status,
+        func.count(NotificationLog.id)
     ).filter(
-        SmsQueue.tenant_id == current_management.tenant_id,
-        func.date(SmsQueue.created_at) == today
-    ).group_by(SmsQueue.status).all()
+        NotificationLog.tenant_id == current_management.tenant_id,
+        NotificationLog.channel == "SMS",
+        func.date(NotificationLog.created_at) == today
+    ).group_by(NotificationLog.status).all()
     
-    stat_dict = {status: count for status, count in stats}
-    
+    stat_dict = {status: count for status, count in log_stats}
     sent = stat_dict.get("SENT", 0) + stat_dict.get("DELIVERED", 0)
     failed = stat_dict.get("FAILED", 0)
-    pending = stat_dict.get("PENDING", 0) + stat_dict.get("PROCESSING", 0)
+    
+    # Get pending queue size from SmsQueue
+    pending = db.query(func.count(SmsQueue.id)).filter(
+        SmsQueue.tenant_id == current_management.tenant_id,
+        SmsQueue.status.in_(["PENDING", "PROCESSING"])
+    ).scalar() or 0
     
     return {
         "sent_today": sent,
