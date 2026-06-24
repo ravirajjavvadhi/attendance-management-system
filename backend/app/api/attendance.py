@@ -36,16 +36,59 @@ def get_today_stats(
     absent_today = sum(1 for r in attendance_records if not r.is_present)
     
     # Low attendance alerts (students with < 75% attendance)
-    # This requires aggregating all attendance records per student.
-    # For now, we return a simple representation or mock for the alerts until we build the full reporting query.
+    from app.models.notification import NotificationLog
+    from sqlalchemy import case
+
+    # Low attendance alerts (students with < 75% attendance)
+    attendance_stats = db.query(
+        StudentProfile.id,
+        StudentProfile.name,
+        Section.name.label("section_name"),
+        func.count(AttendanceRecord.id).label("total"),
+        func.sum(case((AttendanceRecord.is_present == True, 1), else_=0)).label("present")
+    ).join(Section, StudentProfile.section_id == Section.id) \
+     .join(AttendanceRecord, StudentProfile.id == AttendanceRecord.student_id) \
+     .filter(Section.tenant_id == current_management.tenant_id) \
+     .group_by(StudentProfile.id, StudentProfile.name, Section.name).all()
+
     alerts = []
+    for stat in attendance_stats:
+        if stat.total > 0:
+            rate = (stat.present / stat.total) * 100
+            if rate < 75:
+                alerts.append({
+                    "name": stat.name or f"Student #{stat.id}",
+                    "class": f"Section {stat.section_name}",
+                    "rate": f"{rate:.1f}%",
+                    "status": "Critical" if rate < 50 else "Warning"
+                })
+                
+    # Sort alerts so critical ones are first
+    alerts.sort(key=lambda x: float(x["rate"].replace("%", "")))
     
+    # Recent Notifications
+    recent_logs = db.query(NotificationLog) \
+        .filter(NotificationLog.tenant_id == current_management.tenant_id) \
+        .order_by(NotificationLog.created_at.desc()) \
+        .limit(5).all()
+        
+    notifications = []
+    for log in recent_logs:
+        notifications.append({
+            "id": log.id,
+            "type": log.type,
+            "status": log.status,
+            "content": log.content,
+            "time": log.created_at.strftime("%I:%M %p") if log.created_at else ""
+        })
+
     return {
         "total_students": total_students,
         "present_today": present_today,
         "absent_today": absent_today,
         "attendance_rate": f"{(present_today / total_students * 100):.1f}%" if total_students > 0 else "0%",
-        "alerts": alerts
+        "alerts": alerts[:5], # top 5 lowest
+        "notifications": notifications
     }
 
 @router.post("/submit")

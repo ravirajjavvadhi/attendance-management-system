@@ -13,7 +13,8 @@ export default function PrincipalDashboard() {
     present_today: 0,
     absent_today: 0,
     attendance_rate: "0%",
-    alerts: []
+    alerts: [],
+    notifications: []
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -115,9 +116,28 @@ export default function PrincipalDashboard() {
                 <h2 className="text-lg font-semibold">Recent Notifications</h2>
               </div>
               <div className="p-6 flex flex-col gap-6">
-                <div className="text-center text-muted-foreground text-sm">
-                  System communication logs will appear here.
-                </div>
+                {!stats.notifications || stats.notifications.length === 0 ? (
+                  <div className="text-center text-muted-foreground text-sm">
+                    System communication logs will appear here.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {stats.notifications.map((log: any, i: number) => (
+                      <div key={i} className="flex gap-4 border-b border-border pb-4 last:border-0 last:pb-0">
+                        <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center ${log.status === 'SENT' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                          <MessageSquare className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start mb-1">
+                            <span className="font-medium text-sm text-foreground truncate block">{log.type} - {log.status}</span>
+                            <span className="text-xs text-muted-foreground ml-2 shrink-0">{log.time}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2">{log.content.replace(/^Subject:.*?\n\n/g, '')}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
