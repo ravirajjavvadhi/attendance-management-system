@@ -101,7 +101,7 @@ export default function FacultyDashboard() {
     setSubmitStatus({type: null, message: ''});
     
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-afk0.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/attendance/submit/smart`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
