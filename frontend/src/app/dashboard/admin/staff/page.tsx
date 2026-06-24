@@ -75,6 +75,7 @@ export default function FacultyAccessManagement() {
         body: JSON.stringify({
           user_in: {
             email: email,
+            mobile_number: phone || null,
             password: "temporary_not_used",
             role: "faculty",
             tenant_id: 0,
@@ -95,6 +96,7 @@ export default function FacultyAccessManagement() {
         setEmail("");
         setFirstName("");
         setLastName("");
+        setPhone("");
         setAccessLevel("ASSIGNED_SECTION_ACCESS");
         fetchData();
       } else {
@@ -193,17 +195,16 @@ export default function FacultyAccessManagement() {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Access Level</label>
+                <label className="text-sm font-medium text-foreground">Mobile Number (Optional)</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                  <select
-                    value={accessLevel}
-                    onChange={(e) => setAccessLevel(e.target.value)}
+                  <span className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground flex items-center justify-center font-bold text-xs">#</span>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
                     className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  >
-                    <option value="ASSIGNED_SECTION_ACCESS">Assigned Section Access (Strict Isolation)</option>
-                    <option value="FULL_INSTITUTION_ACCESS">Full Institution Access</option>
-                  </select>
+                    placeholder="+1234567890"
+                  />
                 </div>
               </div>
               <div className="space-y-2">
@@ -232,6 +233,20 @@ export default function FacultyAccessManagement() {
                     className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     placeholder="Doe"
                   />
+                </div>
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-medium text-foreground">Access Level</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <select
+                    value={accessLevel}
+                    onChange={(e) => setAccessLevel(e.target.value)}
+                    className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    <option value="ASSIGNED_SECTION_ACCESS">Assigned Section Access (Strict Isolation)</option>
+                    <option value="FULL_INSTITUTION_ACCESS">Full Institution Access</option>
+                  </select>
                 </div>
               </div>
             </div>
