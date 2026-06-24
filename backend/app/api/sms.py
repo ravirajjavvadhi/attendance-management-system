@@ -4,9 +4,10 @@ from app.db.database import get_db
 from app.models.sms import SmsQueue
 from app.models.device import Device
 from app.models.notification import NotificationLog
+from app.models.user import User
+from app.api.deps import get_current_management_or_faculty
 from pydantic import BaseModel
 from typing import List, Optional
-
 router = APIRouter()
 
 class SmsPendingResponse(BaseModel):
@@ -78,3 +79,31 @@ def update_sms_status(request: SmsStatusUpdateRequest, db: Session = Depends(get
     db.commit()
     
     return {"status": "ok"}
+
+@router.get("/stats")
+def get_sms_stats(db: Session = Depends(get_db), current_management: User = Depends(get_current_management_or_faculty)):
+    from sqlalchemy import func
+    from datetime import date
+    
+    today = date.today()
+    
+    # Get stats for today
+    stats = db.query(
+        SmsQueue.status,
+        func.count(SmsQueue.id)
+    ).filter(
+        SmsQueue.tenant_id == current_management.tenant_id,
+        func.date(SmsQueue.created_at) == today
+    ).group_by(SmsQueue.status).all()
+    
+    stat_dict = {status: count for status, count in stats}
+    
+    sent = stat_dict.get("SENT", 0) + stat_dict.get("DELIVERED", 0)
+    failed = stat_dict.get("FAILED", 0)
+    pending = stat_dict.get("PENDING", 0) + stat_dict.get("PROCESSING", 0)
+    
+    return {
+        "sent_today": sent,
+        "failed_today": failed,
+        "queue_size": pending
+    }

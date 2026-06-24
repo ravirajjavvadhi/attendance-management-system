@@ -26,10 +26,14 @@ export default function SmsGatewayPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [pairingToken, setPairingToken] = useState("");
 
+  const [stats, setStats] = useState({ sent_today: 0, failed_today: 0, queue_size: 0 });
+
   const fetchDevices = async () => {
     if (!token) return;
     try {
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      
+      // Fetch devices
       const res = await fetch(`${baseUrl}/api/v1/device`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -37,8 +41,18 @@ export default function SmsGatewayPage() {
         const data = await res.json();
         setDevices(data);
       }
+      
+      // Fetch SMS stats
+      const statsRes = await fetch(`${baseUrl}/api/v1/sms/stats`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData);
+      }
+      
     } catch (error) {
-      console.error("Failed to fetch devices", error);
+      console.error("Failed to fetch data", error);
     } finally {
       setIsLoading(false);
     }
@@ -220,15 +234,15 @@ export default function SmsGatewayPage() {
             <div className="space-y-4">
               <div className="flex justify-between items-center p-3 bg-secondary/50 rounded-lg">
                 <span className="text-sm font-medium text-muted-foreground">Queue Size</span>
-                <span className="text-lg font-bold text-foreground">0</span>
+                <span className="text-lg font-bold text-foreground">{stats.queue_size}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-green-500/5 text-green-600 rounded-lg border border-green-500/10">
                 <span className="text-sm font-medium flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Sent Today</span>
-                <span className="text-lg font-bold">0</span>
+                <span className="text-lg font-bold">{stats.sent_today}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-red-500/5 text-red-600 rounded-lg border border-red-500/10">
                 <span className="text-sm font-medium flex items-center gap-2"><XCircle className="w-4 h-4" /> Failed</span>
-                <span className="text-lg font-bold">0</span>
+                <span className="text-lg font-bold">{stats.failed_today}</span>
               </div>
               <p className="text-xs text-muted-foreground text-center mt-2">Analytics update in real-time as your devices process the SMS queue.</p>
             </div>
