@@ -20,6 +20,7 @@ export default function FacultyAccessManagement() {
 
   const [isAdding, setIsAdding] = useState(false);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [accessLevel, setAccessLevel] = useState("ASSIGNED_SECTION_ACCESS");
