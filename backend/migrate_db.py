@@ -13,6 +13,19 @@ def apply_migrations():
             print("Added access_level to faculty_profiles")
         except Exception as e:
             print("access_level already exists or error:", e)
+
+        try:
+            conn.execute(text("ALTER TABLE sms_queue ADD COLUMN processing_started_at TIMESTAMP WITH TIME ZONE;"))
+            print("Added processing_started_at to sms_queue")
+        except Exception as e:
+            print("processing_started_at already exists or error:", e)
+
+        try:
+            conn.execute(text("UPDATE sms_queue SET status = 'IN_PROGRESS' WHERE status = 'PROCESSING';"))
+            print("Migrated PROCESSING to IN_PROGRESS")
+        except Exception as e:
+            print("Failed to migrate status:", e)
+
         conn.commit()
 
     # Create new tables (like faculty_section_assignments)

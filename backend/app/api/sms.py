@@ -27,22 +27,35 @@ class SmsStatusUpdateRequest(BaseModel):
 
 
 @router.get("/pending", response_model=List[SmsPendingResponse])
-def get_pending_sms(device_uuid: str, db: Session = Depends(get_db)):
+def get_pending_sms(device_uuid: str, limit: int = 50, db: Session = Depends(get_db)):
+    from sqlalchemy.sql import func
+    from datetime import datetime, timezone, timedelta
+    
     # Authenticate device
     device = db.query(Device).filter(Device.device_uuid == device_uuid).first()
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
         
+    # Recover stale jobs (> 30 mins)
+    stale_threshold = datetime.now(timezone.utc) - timedelta(minutes=30)
+    db.query(SmsQueue).filter(
+        SmsQueue.tenant_id == device.tenant_id,
+        SmsQueue.status == "IN_PROGRESS",
+        SmsQueue.processing_started_at < stale_threshold
+    ).update({"status": "PENDING", "processing_started_at": None})
+    db.commit()
+    
     # Get pending SMS for this tenant
     # Sort by priority (1 is highest) and then by oldest first
     pending = db.query(SmsQueue).filter(
         SmsQueue.tenant_id == device.tenant_id,
         SmsQueue.status == "PENDING"
-    ).order_by(SmsQueue.priority.asc(), SmsQueue.created_at.asc()).limit(50).all()
+    ).order_by(SmsQueue.priority.asc(), SmsQueue.created_at.asc()).limit(limit).all()
     
     # Mark them as processing so other devices don't pick them up
     for sms in pending:
-        sms.status = "PROCESSING"
+        sms.status = "IN_PROGRESS"
+        sms.processing_started_at = func.now()
     db.commit()
     
     return pending
@@ -69,7 +82,7 @@ def update_sms_status(request: SmsStatusUpdateRequest, db: Session = Depends(get
         NotificationLog.tenant_id == sms.tenant_id,
         NotificationLog.channel == "SMS",
         NotificationLog.recipient == sms.recipient_phone,
-        NotificationLog.status.in_(["PENDING", "PROCESSING"])
+        NotificationLog.status.in_(["PENDING", "IN_PROGRESS"])
     ).first()
     
     if log:
@@ -104,7 +117,7 @@ def get_sms_stats(db: Session = Depends(get_db), current_management: User = Depe
     # Get pending queue size from SmsQueue
     pending = db.query(func.count(SmsQueue.id)).filter(
         SmsQueue.tenant_id == current_management.tenant_id,
-        SmsQueue.status.in_(["PENDING", "PROCESSING"])
+        SmsQueue.status.in_(["PENDING", "IN_PROGRESS"])
     ).scalar() or 0
     
     return {

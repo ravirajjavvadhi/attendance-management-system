@@ -16,24 +16,20 @@ import com.example.eduflowsmsgateway.api.ApiClient
 import com.example.eduflowsmsgateway.api.SmsStatusUpdateRequest
 import com.example.eduflowsmsgateway.data.SmsDao
 import com.example.eduflowsmsgateway.data.SmsEntity
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
-import javax.inject.Inject
 
-@AndroidEntryPoint
 class SmsPollingService : Service() {
 
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + job)
 
-    @Inject
-    lateinit var sessionManager: SessionManager
-
-    @Inject
-    lateinit var smsDao: SmsDao
+    private lateinit var sessionManager: SessionManager
+    private lateinit var smsDao: SmsDao
 
     override fun onCreate() {
         super.onCreate()
+        sessionManager = ServiceLocator.provideSessionManager(this)
+        smsDao = ServiceLocator.provideSmsDao(this)
         createNotificationChannel()
         startForeground(1, buildNotification())
     }

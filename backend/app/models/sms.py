@@ -12,7 +12,8 @@ class SmsQueue(Base):
     recipient_phone = Column(String, nullable=False, index=True)
     message = Column(String, nullable=False)
     
-    status = Column(String, default="PENDING", index=True) # PENDING, PROCESSING, SENT, DELIVERED, FAILED
+    status = Column(String, default="PENDING", index=True) # PENDING, IN_PROGRESS, SENT, DELIVERED, FAILED
+    processing_started_at = Column(DateTime(timezone=True), nullable=True)
     
     retry_count = Column(Integer, default=0)
     priority = Column(Integer, default=1) # 1 = High (Attendance), 2 = Normal (Announcements)

@@ -16,14 +16,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.eduflowsmsgateway.theme.EduFlowSMSGatewayTheme
-import dagger.hilt.android.AndroidEntryPoint
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModelProvider
 
-@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val viewModel: GatewayViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        val factory = object : ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return GatewayViewModel(
+                    ServiceLocator.provideSessionManager(this@MainActivity),
+                    ServiceLocator.provideSmsDao(this@MainActivity)
+                ) as T
+            }
+        }
         
         // Start the background SMS polling service
         val serviceIntent = Intent(this, SmsPollingService::class.java)
@@ -48,10 +56,12 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+                    val viewModel: GatewayViewModel = androidx.lifecycle.viewmodel.compose.viewModel(factory = factory)
                     val isPaired by viewModel.isPaired.collectAsStateWithLifecycle()
                     
                     if (isPaired) {
                         DashboardScreen(
+                            viewModel = viewModel,
                             onUnpair = { viewModel.unpairDevice() }
                         )
                     } else {

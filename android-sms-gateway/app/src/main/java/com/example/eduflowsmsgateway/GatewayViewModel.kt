@@ -5,15 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.eduflowsmsgateway.api.ApiClient
 import com.example.eduflowsmsgateway.api.RegisterDeviceRequest
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-
-@HiltViewModel
-class GatewayViewModel @Inject constructor(
+class GatewayViewModel(
     private val sessionManager: SessionManager,
     private val smsDao: com.example.eduflowsmsgateway.data.SmsDao
 ) : ViewModel() {

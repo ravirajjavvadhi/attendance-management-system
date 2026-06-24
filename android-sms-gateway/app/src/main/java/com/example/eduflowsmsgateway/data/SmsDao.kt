@@ -8,14 +8,17 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SmsDao {
+    @JvmSuppressWildcards
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(smsList: List<SmsEntity>)
+    suspend fun insertAll(smsList: List<SmsEntity>): List<Long>
 
+    @JvmSuppressWildcards
     @Query("SELECT * FROM sms_queue WHERE status = 'PENDING'")
     suspend fun getPendingSms(): List<SmsEntity>
 
+    @JvmSuppressWildcards
     @Query("UPDATE sms_queue SET status = :status WHERE id = :id")
-    suspend fun updateStatus(id: Int, status: String)
+    suspend fun updateStatus(id: Int, status: String): Int
 
     @Query("SELECT * FROM sms_queue")
     fun getAllSmsFlow(): Flow<List<SmsEntity>>
