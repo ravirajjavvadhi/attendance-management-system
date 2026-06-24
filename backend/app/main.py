@@ -8,7 +8,7 @@ from app.services.simulator import start_simulator
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Start SMS Simulator Background Task
-    start_simulator()
+    # start_simulator() # DISABLED: So the real Android app can process SMS!
     yield
     # Shutdown
 
