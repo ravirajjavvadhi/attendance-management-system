@@ -26,6 +26,14 @@ try:
 except Exception:
     pass
 
+try:
+    with engine.connect() as conn:
+        # Drop the old notification_logs table so create_all recreates it with the new schema (channel, recipient, provider_response)
+        conn.execute(text("DROP TABLE IF EXISTS notification_logs CASCADE"))
+        conn.commit()
+except Exception as e:
+    print("Drop table error:", e)
+
 Base.metadata.create_all(bind=engine)
 
 # Enable CORS for production (Vercel) and local development
