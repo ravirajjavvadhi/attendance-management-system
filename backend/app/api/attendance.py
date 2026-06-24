@@ -76,9 +76,9 @@ def get_today_stats(
     for log in recent_logs:
         notifications.append({
             "id": log.id,
-            "type": log.type,
+            "type": log.channel, # Changed from log.type to log.channel
             "status": log.status,
-            "content": log.content,
+            "content": log.message, # Changed from log.content to log.message
             "time": log.created_at.strftime("%I:%M %p") if log.created_at else ""
         })
 
