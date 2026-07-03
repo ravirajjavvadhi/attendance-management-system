@@ -6,7 +6,8 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     SECRET_KEY: str = "supersecretkey"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 1 week
+    # Permanent login: Set expiration to 10 years (in minutes)
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 365 * 10
     
     SMTP_HOST: Optional[str] = None
     SMTP_PORT: Optional[int] = None
