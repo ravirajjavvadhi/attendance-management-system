@@ -145,5 +145,37 @@ def read_my_institution_settings(
         raise HTTPException(status_code=404, detail="Institution not found")
     return {
         "periods_per_day": getattr(institution, "periods_per_day", 0),
-        "notification_preference": getattr(institution, "notification_preference", "PARENT")
+        "notification_preference": getattr(institution, "notification_preference", "PARENT"),
+        "sms_engine": getattr(institution, "sms_engine", "LEGACY"),
+        "max_sms_per_device_per_day": getattr(institution, "max_sms_per_device_per_day", 70)
     }
+
+from pydantic import BaseModel
+
+class InstitutionSettingsUpdate(BaseModel):
+    periods_per_day: Optional[int] = None
+    notification_preference: Optional[str] = None
+    sms_engine: Optional[str] = None
+    max_sms_per_device_per_day: Optional[int] = None
+
+@router.patch("/me/settings")
+def update_my_institution_settings(
+    settings: InstitutionSettingsUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    institution = db.query(Institution).filter(Institution.id == current_user.tenant_id).first()
+    if institution is None:
+        raise HTTPException(status_code=404, detail="Institution not found")
+        
+    if settings.periods_per_day is not None:
+        institution.periods_per_day = settings.periods_per_day
+    if settings.notification_preference is not None:
+        institution.notification_preference = settings.notification_preference
+    if settings.sms_engine is not None:
+        institution.sms_engine = settings.sms_engine
+    if settings.max_sms_per_device_per_day is not None:
+        institution.max_sms_per_device_per_day = settings.max_sms_per_device_per_day
+        
+    db.commit()
+    return {"status": "success"}

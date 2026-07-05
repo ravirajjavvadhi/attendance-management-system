@@ -3,18 +3,9 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { 
-  Smartphone, 
-  Wifi, 
-  WifiOff, 
-  Battery, 
-  BatteryCharging, 
-  MessageSquare,
-  AlertCircle,
-  CheckCircle2,
-  XCircle,
-  RefreshCw,
-  Plus,
-  Trash2
+  Smartphone, Wifi, WifiOff, Battery, BatteryCharging, 
+  MessageSquare, CheckCircle2, XCircle, RefreshCw, Plus, Trash2,
+  Settings, Edit2, Shield, AlertTriangle
 } from "lucide-react";
 
 export default function SmsGatewayPage() {
@@ -22,10 +13,10 @@ export default function SmsGatewayPage() {
   const token = (session as any)?.accessToken;
   
   const [devices, setDevices] = useState([]);
+  const [settings, setSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [pairingToken, setPairingToken] = useState("");
-
   const [stats, setStats] = useState({ sent_today: 0, failed_today: 0, queue_size: 0 });
 
   const fetchDevices = async () => {
@@ -33,22 +24,25 @@ export default function SmsGatewayPage() {
     try {
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
       
-      // Fetch devices
       const res = await fetch(`${baseUrl}/api/v1/device`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
-        const data = await res.json();
-        setDevices(data);
+        setDevices(await res.json());
       }
       
-      // Fetch SMS stats
       const statsRes = await fetch(`${baseUrl}/api/v1/sms/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData);
+        setStats(await statsRes.json());
+      }
+      
+      const settingsRes = await fetch(`${baseUrl}/api/v1/institution/me/settings`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (settingsRes.ok) {
+        setSettings(await settingsRes.json());
       }
       
     } catch (error) {
@@ -60,7 +54,6 @@ export default function SmsGatewayPage() {
 
   useEffect(() => {
     fetchDevices();
-    // Auto refresh every 15 seconds to see live heartbeats
     const interval = setInterval(fetchDevices, 15000);
     return () => clearInterval(interval);
   }, [token]);
@@ -72,10 +65,7 @@ export default function SmsGatewayPage() {
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/device/generate-token`, {
         method: "POST",
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ device_name: "New Gateway Device" })
       });
       if (res.ok) {
@@ -83,8 +73,6 @@ export default function SmsGatewayPage() {
         setPairingToken(data.pairing_token);
         fetchDevices();
       }
-    } catch (error) {
-      console.error("Failed to generate token", error);
     } finally {
       setIsGenerating(false);
     }
@@ -92,24 +80,55 @@ export default function SmsGatewayPage() {
 
   const removeDevice = async (id: number) => {
     if (!token) return;
-    if (!confirm("Are you sure you want to remove this device? It will stop sending SMS immediately.")) return;
-    try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
-      await fetch(`${baseUrl}/api/v1/device/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      fetchDevices();
-    } catch (error) {
-      console.error("Failed to remove device", error);
-    }
+    if (!confirm("Are you sure you want to archive this device?")) return;
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+    await fetch(`${baseUrl}/api/v1/device/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    fetchDevices();
+  };
+
+  const renameDevice = async (id: number, currentName: string) => {
+    if (!token) return;
+    const newName = prompt("Enter new device name:", currentName);
+    if (!newName || newName === currentName) return;
+    
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+    await fetch(`${baseUrl}/api/v1/device/${id}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ device_name: newName })
+    });
+    fetchDevices();
+  };
+
+  const toggleEngine = async () => {
+    if (!token || !settings) return;
+    const newEngine = settings.sms_engine === "ENTERPRISE" ? "LEGACY" : "ENTERPRISE";
+    if (!confirm(`Switch SMS Engine to ${newEngine}?`)) return;
+    
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+    await fetch(`${baseUrl}/api/v1/institution/me/settings`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ sms_engine: newEngine })
+    });
+    fetchDevices();
   };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">SMS Gateway</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+            SMS Gateway
+            {settings?.sms_engine === "ENTERPRISE" && (
+              <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded flex items-center gap-1 border border-primary/20">
+                <Shield className="w-3 h-3" /> Enterprise Engine Active
+              </span>
+            )}
+          </h1>
           <p className="text-muted-foreground mt-1">Manage Android devices paired to your institution for native SMS delivery.</p>
         </div>
         <button 
@@ -146,7 +165,6 @@ export default function SmsGatewayPage() {
                 <div className="px-6 py-8 text-center text-muted-foreground flex flex-col items-center gap-2">
                   <WifiOff className="w-8 h-8 text-muted-foreground/50" />
                   <p>No devices connected yet.</p>
-                  <p className="text-xs">Click "Pair New Device" to set up your first SMS Gateway.</p>
                 </div>
               ) : (
                 devices.map((device: any) => {
@@ -162,6 +180,9 @@ export default function SmsGatewayPage() {
                         <div>
                           <h3 className="font-semibold text-foreground flex items-center gap-2">
                             {device.device_name}
+                            <button onClick={() => renameDevice(device.id, device.device_name)} className="text-muted-foreground hover:text-foreground">
+                              <Edit2 className="w-3 h-3" />
+                            </button>
                             {isOnline && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>}
                           </h3>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
@@ -175,36 +196,36 @@ export default function SmsGatewayPage() {
                               </>
                             )}
                           </div>
+                          
+                          {/* Enhanced Health Metrics */}
+                          {isOnline && !device.pairing_token && device.network_type && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              <span className="px-2 py-0.5 bg-muted text-xs rounded border text-muted-foreground">App: v{device.app_version || 'Unknown'}</span>
+                              <span className="px-2 py-0.5 bg-muted text-xs rounded border text-muted-foreground">RAM: {device.ram_usage || '?'}</span>
+                              <span className="px-2 py-0.5 bg-muted text-xs rounded border text-muted-foreground">Storage: {device.storage_remaining || '?'}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                       
                       {!device.pairing_token && (
-                        <div className="flex items-center gap-6 bg-secondary/30 px-4 py-2 rounded-lg border">
+                        <div className="flex items-center gap-4 bg-secondary/30 px-4 py-2 rounded-lg border">
                           <div className="flex flex-col items-center">
                             <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Battery</span>
                             <div className="flex items-center gap-1 font-medium text-sm">
                               {device.battery_percentage !== null ? (
                                 <>
                                   {device.battery_percentage}% 
-                                  {device.battery_percentage < 20 ? <Battery className="w-4 h-4 text-red-500" /> : <BatteryCharging className="w-4 h-4 text-green-500" />}
+                                  {device.is_charging ? <BatteryCharging className="w-4 h-4 text-green-500" /> : <Battery className="w-4 h-4 text-muted-foreground" />}
                                 </>
-                              ) : (
-                                "-"
-                              )}
-                            </div>
-                          </div>
-                          <div className="w-px h-8 bg-border"></div>
-                          <div className="flex flex-col items-center">
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Signal</span>
-                            <div className="flex items-center gap-1 font-medium text-sm">
-                              {device.signal_strength !== null ? `${device.signal_strength}%` : "-"}
+                              ) : "-"}
                             </div>
                           </div>
                           <div className="w-px h-8 bg-border"></div>
                           <div className="flex flex-col items-center">
                             <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Network</span>
                             <div className="flex items-center gap-1 font-medium text-sm">
-                              {device.sim_operator || "Unknown"}
+                              {device.network_type || device.sim_operator || "Unknown"} ({device.signal_strength}%)
                             </div>
                           </div>
                         </div>
@@ -213,7 +234,6 @@ export default function SmsGatewayPage() {
                       <button 
                         onClick={() => removeDevice(device.id)}
                         className="p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-colors"
-                        title="Remove Device"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -244,9 +264,38 @@ export default function SmsGatewayPage() {
                 <span className="text-sm font-medium flex items-center gap-2"><XCircle className="w-4 h-4" /> Failed</span>
                 <span className="text-lg font-bold">{stats.failed_today}</span>
               </div>
-              <p className="text-xs text-muted-foreground text-center mt-2">Analytics update in real-time as your devices process the SMS queue.</p>
             </div>
           </div>
+          
+          <div className="bg-card border rounded-xl shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Settings className="w-5 h-5 text-muted-foreground" />
+              Engine Configuration
+            </h2>
+            <div className="space-y-4">
+              <div className="p-4 bg-muted/40 rounded-lg border border-border">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">Daily Device Quota</span>
+                  <span className="text-sm font-bold">{settings?.max_sms_per_device_per_day || 70} SMS</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Max messages one device can send per day to prevent carrier bans.</p>
+              </div>
+              
+              <div className="p-4 bg-muted/40 rounded-lg border border-border">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">Enterprise Queue</span>
+                  <button 
+                    onClick={toggleEngine}
+                    className={`w-10 h-5 rounded-full relative transition-colors ${settings?.sms_engine === "ENTERPRISE" ? "bg-primary" : "bg-muted-foreground/30"}`}
+                  >
+                    <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-transform ${settings?.sms_engine === "ENTERPRISE" ? "left-6" : "left-1"}`}></div>
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">Enable strict atomic locking, UUID idempotency, and ACK guarantees.</p>
+              </div>
+            </div>
+          </div>
+          
         </div>
       </div>
     </div>

@@ -40,18 +40,28 @@ class DeviceHeartbeatRequest(BaseModel):
     signal_strength: int
     sim_operator: Optional[str] = None
     sim_slot: Optional[int] = None
+    is_charging: Optional[bool] = None
+    app_version: Optional[str] = None
+    foreground_service_running: Optional[bool] = None
+    network_type: Optional[str] = None
+    storage_remaining: Optional[str] = None
+    ram_usage: Optional[str] = None
+    android_version: Optional[str] = None
+
+class DeviceRenameRequest(BaseModel):
+    device_name: str
 
 
 # --- MANAGEMENT ENDPOINTS ---
 
 @router.get("/", response_model=List[DeviceResponse])
 def get_devices(db: Session = Depends(get_db), current_user: User = Depends(get_current_management_or_faculty)):
-    devices = db.query(Device).filter(Device.tenant_id == current_user.tenant_id).all()
+    # Don't show archived devices in the main list
+    devices = db.query(Device).filter(Device.tenant_id == current_user.tenant_id, Device.status != "ARCHIVED").all()
     return devices
 
 @router.post("/generate-token", response_model=DeviceResponse)
 def generate_pairing_token(request: TokenGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_management_or_faculty)):
-    # Generate a random 6 character token
     token = secrets.token_hex(3).upper()
     
     new_device = Device(
@@ -71,28 +81,36 @@ def delete_device(device_id: int, db: Session = Depends(get_db), current_user: U
     device = db.query(Device).filter(Device.id == device_id, Device.tenant_id == current_user.tenant_id).first()
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
-    db.delete(device)
+    # Soft delete
+    device.status = "ARCHIVED"
+    device.pairing_token = None
+    device.jwt_identifier = None
     db.commit()
-    return {"message": "Device deleted successfully"}
+    return {"message": "Device archived successfully"}
+
+@router.patch("/{device_id}")
+def rename_device(device_id: int, request: DeviceRenameRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_management_or_faculty)):
+    device = db.query(Device).filter(Device.id == device_id, Device.tenant_id == current_user.tenant_id, Device.status != "ARCHIVED").first()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    device.device_name = request.device_name
+    db.commit()
+    return {"message": "Device renamed successfully"}
 
 
 # --- ANDROID GATEWAY ENDPOINTS ---
 
 @router.post("/register")
 def register_device(request: DeviceRegisterRequest, db: Session = Depends(get_db)):
-    # Find the device with the pairing token
-    device = db.query(Device).filter(Device.pairing_token == request.pairing_token).first()
+    device = db.query(Device).filter(Device.pairing_token == request.pairing_token, Device.status != "ARCHIVED").first()
     if not device:
         raise HTTPException(status_code=404, detail="Invalid pairing token")
         
-    # Bind the device
     device.device_uuid = request.device_uuid
-    device.pairing_token = None # Clear token after use
+    device.pairing_token = None
     device.status = "ONLINE"
     device.last_seen = datetime.now(timezone.utc)
     
-    # Generate a JWT for this device
-    # We use a custom subject format like "device:<device_id>"
     access_token = create_access_token(data={"sub": f"device:{device.id}"})
     device.jwt_identifier = access_token
     
@@ -107,9 +125,7 @@ def register_device(request: DeviceRegisterRequest, db: Session = Depends(get_db
 
 @router.post("/heartbeat")
 def device_heartbeat(request: DeviceHeartbeatRequest, db: Session = Depends(get_db)):
-    # Simple heartbeat. Ideally, protect this with JWT in the future.
-    # For now, validate by device_uuid.
-    device = db.query(Device).filter(Device.device_uuid == request.device_uuid).first()
+    device = db.query(Device).filter(Device.device_uuid == request.device_uuid, Device.status != "ARCHIVED").first()
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
         
@@ -117,6 +133,16 @@ def device_heartbeat(request: DeviceHeartbeatRequest, db: Session = Depends(get_
     device.signal_strength = request.signal_strength
     device.sim_operator = request.sim_operator
     device.sim_slot = request.sim_slot
+    
+    # Enhanced metrics
+    if request.is_charging is not None: device.is_charging = request.is_charging
+    if request.app_version: device.app_version = request.app_version
+    if request.foreground_service_running is not None: device.foreground_service_running = request.foreground_service_running
+    if request.network_type: device.network_type = request.network_type
+    if request.storage_remaining: device.storage_remaining = request.storage_remaining
+    if request.ram_usage: device.ram_usage = request.ram_usage
+    if request.android_version: device.android_version = request.android_version
+    
     device.last_seen = datetime.now(timezone.utc)
     device.status = "ONLINE"
     

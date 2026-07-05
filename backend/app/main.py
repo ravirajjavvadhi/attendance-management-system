@@ -40,6 +40,25 @@ try:
         conn.execute(text("ALTER TABLE institutions ADD COLUMN IF NOT EXISTS notification_preference VARCHAR DEFAULT 'PARENT'"))
         conn.execute(text("ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS period INTEGER"))
         
+        # Enterprise SMS Gateway Additions
+        conn.execute(text("ALTER TABLE institutions ADD COLUMN IF NOT EXISTS max_sms_per_device_per_day INTEGER DEFAULT 70"))
+        conn.execute(text("ALTER TABLE institutions ADD COLUMN IF NOT EXISTS sms_engine VARCHAR DEFAULT 'LEGACY'"))
+        
+        conn.execute(text("ALTER TABLE sms_queue ADD COLUMN IF NOT EXISTS processed_by_device_id INTEGER REFERENCES devices(id)"))
+        conn.execute(text("ALTER TABLE sms_queue ADD COLUMN IF NOT EXISTS message_uuid VARCHAR UNIQUE"))
+        conn.execute(text("ALTER TABLE sms_queue ADD COLUMN IF NOT EXISTS priority_level VARCHAR DEFAULT 'NORMAL'"))
+        conn.execute(text("ALTER TABLE sms_queue ADD COLUMN IF NOT EXISTS delivery_status VARCHAR DEFAULT 'UNKNOWN'"))
+        
+        conn.execute(text("ALTER TABLE notification_logs ADD COLUMN IF NOT EXISTS device_id INTEGER REFERENCES devices(id)"))
+        
+        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS is_charging BOOLEAN"))
+        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS app_version VARCHAR"))
+        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS foreground_service_running BOOLEAN"))
+        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS network_type VARCHAR"))
+        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS storage_remaining VARCHAR"))
+        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS ram_usage VARCHAR"))
+        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS android_version VARCHAR"))
+        
         conn.commit()
 except Exception as e:
     print("DB Migration error:", e)

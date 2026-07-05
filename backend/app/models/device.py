@@ -18,6 +18,15 @@ class Device(Base):
     sim_operator = Column(String, nullable=True)
     sim_slot = Column(Integer, nullable=True)
     
+    # Advanced Health Metrics
+    is_charging = Column(Boolean, nullable=True)
+    app_version = Column(String, nullable=True)
+    foreground_service_running = Column(Boolean, nullable=True)
+    network_type = Column(String, nullable=True)
+    storage_remaining = Column(String, nullable=True)
+    ram_usage = Column(String, nullable=True)
+    android_version = Column(String, nullable=True)
+    
     last_seen = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

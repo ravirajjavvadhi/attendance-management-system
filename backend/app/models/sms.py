@@ -12,11 +12,16 @@ class SmsQueue(Base):
     recipient_phone = Column(String, nullable=False, index=True)
     message = Column(String, nullable=False)
     
-    status = Column(String, default="PENDING", index=True) # PENDING, IN_PROGRESS, SENT, DELIVERED, FAILED
+    status = Column(String, default="PENDING", index=True) # PENDING, CLAIMED, READY_TO_SEND, SENDING, COMPLETED, FAILED
+    delivery_status = Column(String, default="UNKNOWN", index=True) # UNKNOWN, SENT, DELIVERED, FAILED
     processing_started_at = Column(DateTime(timezone=True), nullable=True)
     
+    processed_by_device_id = Column(Integer, ForeignKey("devices.id"), nullable=True)
+    message_uuid = Column(String, nullable=True, unique=True, index=True)
+    
     retry_count = Column(Integer, default=0)
-    priority = Column(Integer, default=1) # 1 = High (Attendance), 2 = Normal (Announcements)
+    priority = Column(Integer, default=1) # Deprecated legacy priority
+    priority_level = Column(String, default="NORMAL", index=True) # HIGH, NORMAL, LOW
     source_module = Column(String, nullable=False) # ATTENDANCE, MARKS, FEES, ANNOUNCEMENTS
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())

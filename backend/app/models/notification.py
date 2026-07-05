@@ -12,6 +12,7 @@ class NotificationLog(Base):
     status = Column(String, nullable=False) # "PENDING", "SENT", "FAILED", "DELIVERED"
     message = Column(String, nullable=False) # The actual content sent
     provider_response = Column(String, nullable=True) # Response from Gateway or SMTP
+    device_id = Column(Integer, ForeignKey("devices.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class SMSTemplate(Base):

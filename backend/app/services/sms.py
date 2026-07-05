@@ -105,6 +105,9 @@ def queue_sms(student_id: int, date: str, tenant_id: int, period: int = None):
                         f"{institution_name}"
                     )
             
+            import uuid
+            new_uuid = str(uuid.uuid4())
+            
             # Queue the SMS for the Android Gateway
             queue_item = SmsQueue(
                 tenant_id=tenant_id,
@@ -112,7 +115,8 @@ def queue_sms(student_id: int, date: str, tenant_id: int, period: int = None):
                 recipient_phone=profile.parent_mobile,
                 message=message,
                 status="PENDING",
-                source_module="ATTENDANCE"
+                source_module="ATTENDANCE",
+                message_uuid=new_uuid
             )
             db.add(queue_item)
             

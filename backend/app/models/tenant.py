@@ -12,6 +12,9 @@ class Institution(Base):
     logo_url = Column(String, nullable=True)
     periods_per_day = Column(Integer, default=0) # 0 means daily attendance
     notification_preference = Column(String, default="PARENT") # "PARENT", "STUDENT", "BOTH"
+    max_sms_per_device_per_day = Column(Integer, default=70)
+    sms_engine = Column(String, default="LEGACY") # "LEGACY" or "ENTERPRISE"
+    
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

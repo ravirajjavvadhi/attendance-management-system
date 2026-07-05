@@ -1,56 +1,58 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.db.database import get_db
 from app.models.notification import NotificationLog
+from app.models.device import Device
 from app.models.user import User
-from app.api.deps import get_current_admin
+from app.api.deps import get_current_management_or_faculty
 from pydantic import BaseModel
+from datetime import datetime
 
 router = APIRouter()
 
-class SMSPendingResponse(BaseModel):
+class NotificationLogResponse(BaseModel):
     id: int
-    mobile_number: str
-    content: str
-
-class SMSStatusUpdate(BaseModel):
+    channel: str
+    recipient: str
     status: str
-    error_message: str = None
+    message: str
+    provider_response: Optional[str]
+    created_at: datetime
+    device_name: Optional[str] = None
 
-@router.get("/sms/pending", response_model=List[SMSPendingResponse])
-def get_pending_sms(db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
-    """ Endpoint for Android Device to fetch pending SMS to send. """
+    class Config:
+        orm_mode = True
+
+@router.get("/logs", response_model=List[NotificationLogResponse])
+def get_notification_logs(
+    limit: int = 100, 
+    offset: int = 0,
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_management_or_faculty)
+):
+    """ Fetch immutable audit logs for notifications. """
     logs = db.query(NotificationLog).filter(
-        NotificationLog.tenant_id == current_admin.tenant_id,
-        NotificationLog.type == "SMS",
-        NotificationLog.status == "PENDING"
-    ).limit(50).all()
+        NotificationLog.tenant_id == current_user.tenant_id
+    ).order_by(NotificationLog.created_at.desc()).offset(offset).limit(limit).all()
     
     result = []
-    for log in logs:
-        from app.models.profiles import StudentProfile
-        profile = db.query(StudentProfile).filter(StudentProfile.id == log.user_id).first()
+    # Pre-fetch devices for mapping
+    device_ids = [l.device_id for l in logs if l.device_id]
+    devices = {}
+    if device_ids:
+        devs = db.query(Device).filter(Device.id.in_(device_ids)).all()
+        devices = {d.id: d.device_name for d in devs}
         
-        if profile and profile.parent_mobile:
-            result.append({
-                "id": log.id,
-                "mobile_number": profile.parent_mobile,
-                "content": log.content
-            })
+    for log in logs:
+        result.append({
+            "id": log.id,
+            "channel": log.channel,
+            "recipient": log.recipient,
+            "status": log.status,
+            "message": log.message,
+            "provider_response": log.provider_response,
+            "created_at": log.created_at,
+            "device_name": devices.get(log.device_id) if log.device_id else None
+        })
     return result
-
-@router.put("/sms/{log_id}/status")
-def update_sms_status(log_id: int, status_update: SMSStatusUpdate, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
-    """ Endpoint for Android Device to update delivery status. """
-    log = db.query(NotificationLog).filter(
-        NotificationLog.id == log_id,
-        NotificationLog.tenant_id == current_admin.tenant_id
-    ).first()
-    
-    if log:
-        log.status = status_update.status
-        log.error_message = status_update.error_message
-        db.commit()
-        return {"message": "Status updated"}
-    return {"message": "Log not found"}
