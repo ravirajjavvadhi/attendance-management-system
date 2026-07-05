@@ -28,40 +28,41 @@ except Exception:
 
 try:
     with engine.connect() as conn:
-        # Drop the old notification_logs table so create_all recreates it with the new schema (channel, recipient, provider_response)
+        # Drop the old notification_logs table so create_all recreates it
         conn.execute(text("DROP TABLE IF EXISTS notification_logs CASCADE"))
-        
-        # Fix foreign key bug in attendance_records
-        conn.execute(text("ALTER TABLE attendance_records DROP CONSTRAINT IF EXISTS attendance_records_student_id_fkey"))
-        conn.execute(text("ALTER TABLE attendance_records ADD CONSTRAINT attendance_records_student_id_fkey FOREIGN KEY (student_id) REFERENCES student_profiles(id)"))
-        
-        # Add new period and notification preference columns
-        conn.execute(text("ALTER TABLE institutions ADD COLUMN IF NOT EXISTS periods_per_day INTEGER DEFAULT 0"))
-        conn.execute(text("ALTER TABLE institutions ADD COLUMN IF NOT EXISTS notification_preference VARCHAR DEFAULT 'PARENT'"))
-        conn.execute(text("ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS period INTEGER"))
-        
-        # Enterprise SMS Gateway Additions
-        conn.execute(text("ALTER TABLE institutions ADD COLUMN IF NOT EXISTS max_sms_per_device_per_day INTEGER DEFAULT 70"))
-        conn.execute(text("ALTER TABLE institutions ADD COLUMN IF NOT EXISTS sms_engine VARCHAR DEFAULT 'LEGACY'"))
-        
-        conn.execute(text("ALTER TABLE sms_queue ADD COLUMN IF NOT EXISTS processed_by_device_id INTEGER REFERENCES devices(id)"))
-        conn.execute(text("ALTER TABLE sms_queue ADD COLUMN IF NOT EXISTS message_uuid VARCHAR UNIQUE"))
-        conn.execute(text("ALTER TABLE sms_queue ADD COLUMN IF NOT EXISTS priority_level VARCHAR DEFAULT 'NORMAL'"))
-        conn.execute(text("ALTER TABLE sms_queue ADD COLUMN IF NOT EXISTS delivery_status VARCHAR DEFAULT 'UNKNOWN'"))
-        
-        conn.execute(text("ALTER TABLE notification_logs ADD COLUMN IF NOT EXISTS device_id INTEGER REFERENCES devices(id)"))
-        
-        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS is_charging BOOLEAN"))
-        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS app_version VARCHAR"))
-        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS foreground_service_running BOOLEAN"))
-        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS network_type VARCHAR"))
-        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS storage_remaining VARCHAR"))
-        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS ram_usage VARCHAR"))
-        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS android_version VARCHAR"))
-        
         conn.commit()
-except Exception as e:
-    print("DB Migration error:", e)
+except Exception:
+    pass
+
+migrations = [
+    "ALTER TABLE attendance_records DROP CONSTRAINT IF EXISTS attendance_records_student_id_fkey",
+    "ALTER TABLE attendance_records ADD CONSTRAINT attendance_records_student_id_fkey FOREIGN KEY (student_id) REFERENCES student_profiles(id)",
+    "ALTER TABLE institutions ADD COLUMN IF NOT EXISTS periods_per_day INTEGER DEFAULT 0",
+    "ALTER TABLE institutions ADD COLUMN IF NOT EXISTS notification_preference VARCHAR DEFAULT 'PARENT'",
+    "ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS period INTEGER",
+    "ALTER TABLE institutions ADD COLUMN IF NOT EXISTS max_sms_per_device_per_day INTEGER DEFAULT 70",
+    "ALTER TABLE institutions ADD COLUMN IF NOT EXISTS sms_engine VARCHAR DEFAULT 'LEGACY'",
+    "ALTER TABLE sms_queue ADD COLUMN IF NOT EXISTS processed_by_device_id INTEGER REFERENCES devices(id)",
+    "ALTER TABLE sms_queue ADD COLUMN IF NOT EXISTS message_uuid VARCHAR",
+    "ALTER TABLE sms_queue ADD CONSTRAINT sms_queue_message_uuid_key UNIQUE (message_uuid)",
+    "ALTER TABLE sms_queue ADD COLUMN IF NOT EXISTS priority_level VARCHAR DEFAULT 'NORMAL'",
+    "ALTER TABLE sms_queue ADD COLUMN IF NOT EXISTS delivery_status VARCHAR DEFAULT 'UNKNOWN'",
+    "ALTER TABLE devices ADD COLUMN IF NOT EXISTS is_charging BOOLEAN",
+    "ALTER TABLE devices ADD COLUMN IF NOT EXISTS app_version VARCHAR",
+    "ALTER TABLE devices ADD COLUMN IF NOT EXISTS foreground_service_running BOOLEAN",
+    "ALTER TABLE devices ADD COLUMN IF NOT EXISTS network_type VARCHAR",
+    "ALTER TABLE devices ADD COLUMN IF NOT EXISTS storage_remaining VARCHAR",
+    "ALTER TABLE devices ADD COLUMN IF NOT EXISTS ram_usage VARCHAR",
+    "ALTER TABLE devices ADD COLUMN IF NOT EXISTS android_version VARCHAR"
+]
+
+for migration in migrations:
+    try:
+        with engine.connect() as conn:
+            conn.execute(text(migration))
+            conn.commit()
+    except Exception as e:
+        print(f"Migration failed for {migration}: {e}")
 
 Base.metadata.create_all(bind=engine)
 

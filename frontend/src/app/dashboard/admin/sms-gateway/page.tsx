@@ -72,7 +72,11 @@ export default function SmsGatewayPage() {
         const data = await res.json();
         setPairingToken(data.pairing_token);
         fetchDevices();
+      } else {
+        alert("Failed to generate pairing token. Please check server logs.");
       }
+    } catch (err) {
+      alert("Network error occurred while generating token.");
     } finally {
       setIsGenerating(false);
     }
@@ -81,12 +85,16 @@ export default function SmsGatewayPage() {
   const removeDevice = async (id: number) => {
     if (!token) return;
     if (!confirm("Are you sure you want to archive this device?")) return;
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
-    await fetch(`${baseUrl}/api/v1/device/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    fetchDevices();
+    try {
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      await fetch(`${baseUrl}/api/v1/device/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchDevices();
+    } catch (err) {
+      alert("Failed to remove device.");
+    }
   };
 
   const renameDevice = async (id: number, currentName: string) => {
@@ -94,13 +102,17 @@ export default function SmsGatewayPage() {
     const newName = prompt("Enter new device name:", currentName);
     if (!newName || newName === currentName) return;
     
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
-    await fetch(`${baseUrl}/api/v1/device/${id}`, {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ device_name: newName })
-    });
-    fetchDevices();
+    try {
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      await fetch(`${baseUrl}/api/v1/device/${id}`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ device_name: newName })
+      });
+      fetchDevices();
+    } catch (err) {
+      alert("Failed to rename device.");
+    }
   };
 
   const toggleEngine = async () => {
@@ -108,13 +120,18 @@ export default function SmsGatewayPage() {
     const newEngine = settings.sms_engine === "ENTERPRISE" ? "LEGACY" : "ENTERPRISE";
     if (!confirm(`Switch SMS Engine to ${newEngine}?`)) return;
     
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
-    await fetch(`${baseUrl}/api/v1/institution/me/settings`, {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ sms_engine: newEngine })
-    });
-    fetchDevices();
+    try {
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const res = await fetch(`${baseUrl}/api/v1/institution/me/settings`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ sms_engine: newEngine })
+      });
+      if (!res.ok) alert("Failed to switch engine configuration.");
+      fetchDevices();
+    } catch (err) {
+      alert("Network error while switching engine.");
+    }
   };
 
   return (
