@@ -37,6 +37,7 @@ class SmsStatusUpdateRequest(BaseModel):
     error_message: Optional[str] = None
 
 @router.get("/pending", response_model=List[SmsPendingResponse])
+@router.get("/queue", response_model=List[SmsPendingResponse])
 def get_pending_sms(device_uuid: str, limit: int = 50, db: Session = Depends(get_db)):
     device = db.query(Device).filter(Device.device_uuid == device_uuid, Device.status != "ARCHIVED").first()
     if not device:
@@ -135,6 +136,7 @@ def ack_sms(request: SmsAckRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/status")
+@router.post("/update-status")
 def update_sms_status(request: SmsStatusUpdateRequest, db: Session = Depends(get_db)):
     device = db.query(Device).filter(Device.device_uuid == request.device_uuid, Device.status != "ARCHIVED").first()
     if not device:
