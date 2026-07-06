@@ -151,6 +151,7 @@ def read_my_institution_settings(
     }
 
 from pydantic import BaseModel
+from typing import Optional
 
 class InstitutionSettingsUpdate(BaseModel):
     periods_per_day: Optional[int] = None
@@ -179,3 +180,95 @@ def update_my_institution_settings(
         
     db.commit()
     return {"status": "success"}
+
+from app.models.academic import Section
+from app.models.profiles import StudentProfile
+from app.models.device import Device
+from app.models.notification import NotificationLog
+from app.models.attendance import AttendanceRecord
+from sqlalchemy.sql import func
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+class DetailedInstitutionReport(BaseModel):
+    id: int
+    name: str
+    subdomain: str
+    status: str
+    total_students: int
+    total_faculty: int
+    active_devices: int
+    today_attendance_rate: str
+    sms_sent_today: int
+
+@router.get("/reports/detailed", response_model=List[DetailedInstitutionReport])
+def get_detailed_institution_reports(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_superadmin)
+):
+    institutions = db.query(Institution).all()
+    today_ist = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    
+    result = []
+    for inst in institutions:
+        # Total Students
+        total_students = db.query(func.count(StudentProfile.id)) \
+            .join(Section, StudentProfile.section_id == Section.id) \
+            .filter(Section.tenant_id == inst.id).scalar() or 0
+            
+        # Total Faculty
+        total_faculty = db.query(func.count(User.id)).filter(
+            User.tenant_id == inst.id, 
+            User.role == UserRole.FACULTY.value
+        ).scalar() or 0
+        
+        # Active Devices
+        active_devices = db.query(func.count(Device.id)).filter(
+            Device.tenant_id == inst.id,
+            Device.status == "ONLINE"
+        ).scalar() or 0
+        
+        # SMS Sent Today
+        sms_sent = db.query(func.count(NotificationLog.id)).filter(
+            NotificationLog.tenant_id == inst.id,
+            NotificationLog.channel == "SMS",
+            NotificationLog.status.in_(["SENT", "COMPLETED", "DELIVERED"]),
+            func.date(func.timezone('Asia/Kolkata', NotificationLog.created_at)) == today_ist
+        ).scalar() or 0
+        
+        # Attendance Rate Today
+        total_records = db.query(func.count(AttendanceRecord.id)) \
+            .join(Section, AttendanceRecord.section_id == Section.id) \
+            .filter(
+                Section.tenant_id == inst.id,
+                AttendanceRecord.date == today_ist
+            ).scalar() or 0
+            
+        present_records = db.query(func.count(AttendanceRecord.id)) \
+            .join(Section, AttendanceRecord.section_id == Section.id) \
+            .filter(
+                Section.tenant_id == inst.id,
+                AttendanceRecord.date == today_ist,
+                AttendanceRecord.is_present == True
+            ).scalar() or 0
+            
+        attendance_rate = "0%"
+        if total_records > 0:
+            rate = (present_records / total_records) * 100
+            attendance_rate = f"{rate:.1f}%"
+        elif total_students > 0:
+            attendance_rate = "N/A" # No attendance taken yet today
+            
+        result.append(DetailedInstitutionReport(
+            id=inst.id,
+            name=inst.name,
+            subdomain=inst.subdomain,
+            status="Active" if inst.is_active else "Inactive",
+            total_students=total_students,
+            total_faculty=total_faculty,
+            active_devices=active_devices,
+            today_attendance_rate=attendance_rate,
+            sms_sent_today=sms_sent
+        ))
+        
+    return result
