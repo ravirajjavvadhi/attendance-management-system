@@ -10,4 +10,5 @@ api_router.include_router(attendance.router, prefix="/attendance", tags=["attend
 api_router.include_router(notification.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(academic.router, prefix="/academic", tags=["academic"])
 api_router.include_router(device.router, prefix="/device", tags=["device"])
+api_router.include_router(device.router, prefix="/devices", tags=["device"])
 api_router.include_router(sms.router, prefix="/sms", tags=["sms"])

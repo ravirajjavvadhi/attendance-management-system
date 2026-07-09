@@ -31,8 +31,13 @@ class DeviceResponse(BaseModel):
 
 # Schema for Android Device Registering
 class DeviceRegisterRequest(BaseModel):
-    pairing_token: str
-    device_uuid: str
+    pairing_token: Optional[str] = None
+    token: Optional[str] = None
+    device_uuid: Optional[str] = None
+    uuid: Optional[str] = None
+    
+    class Config:
+        extra = "allow"
 
 class DeviceHeartbeatRequest(BaseModel):
     device_uuid: str
@@ -100,13 +105,36 @@ def rename_device(device_id: int, request: DeviceRenameRequest, db: Session = De
 
 # --- ANDROID GATEWAY ENDPOINTS ---
 
+from fastapi import Request
+
 @router.post("/register")
-def register_device(request: DeviceRegisterRequest, db: Session = Depends(get_db)):
-    device = db.query(Device).filter(Device.pairing_token == request.pairing_token, Device.status != "ARCHIVED").first()
+async def register_device(request: Request, db: Session = Depends(get_db)):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+        
+    if not data:
+        form = await request.form()
+        data = dict(form)
+        
+    if not data:
+        data = dict(request.query_params)
+        
+    actual_token = data.get("pairing_token") or data.get("token") or data.get("code") or data.get("pairingCode") or data.get("pairing_code")
+    actual_uuid = data.get("device_uuid") or data.get("uuid") or data.get("deviceId") or data.get("device_id")
+    
+    if not actual_token:
+        # Check if the token was sent in the URL path (fallback)
+        raise HTTPException(status_code=400, detail="Missing pairing token in request")
+        
+    actual_token = str(actual_token).replace(" ", "").upper()
+    
+    device = db.query(Device).filter(Device.pairing_token == actual_token, Device.status != "ARCHIVED").first()
     if not device:
         raise HTTPException(status_code=404, detail="Invalid pairing token")
         
-    device.device_uuid = request.device_uuid
+    device.device_uuid = actual_uuid or ("uuid_" + secrets.token_hex(8))
     device.pairing_token = None
     device.status = "ONLINE"
     device.last_seen = datetime.now(timezone.utc)
@@ -124,24 +152,40 @@ def register_device(request: DeviceRegisterRequest, db: Session = Depends(get_db
     }
 
 @router.post("/heartbeat")
-def device_heartbeat(request: DeviceHeartbeatRequest, db: Session = Depends(get_db)):
-    device = db.query(Device).filter(Device.device_uuid == request.device_uuid, Device.status != "ARCHIVED").first()
+async def device_heartbeat(request: Request, db: Session = Depends(get_db)):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+        
+    if not data:
+        form = await request.form()
+        data = dict(form)
+        
+    if not data:
+        data = dict(request.query_params)
+        
+    actual_uuid = data.get("device_uuid") or data.get("uuid") or data.get("deviceId") or data.get("device_id")
+    if not actual_uuid:
+        raise HTTPException(status_code=400, detail="Missing device_uuid")
+
+    device = db.query(Device).filter(Device.device_uuid == actual_uuid, Device.status != "ARCHIVED").first()
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
         
-    device.battery_percentage = request.battery_percentage
-    device.signal_strength = request.signal_strength
-    device.sim_operator = request.sim_operator
-    device.sim_slot = request.sim_slot
+    if "battery_percentage" in data: device.battery_percentage = int(data["battery_percentage"])
+    if "signal_strength" in data: device.signal_strength = int(data["signal_strength"])
+    if "sim_operator" in data: device.sim_operator = str(data["sim_operator"])
+    if "sim_slot" in data: device.sim_slot = int(data["sim_slot"])
     
     # Enhanced metrics
-    if request.is_charging is not None: device.is_charging = request.is_charging
-    if request.app_version: device.app_version = request.app_version
-    if request.foreground_service_running is not None: device.foreground_service_running = request.foreground_service_running
-    if request.network_type: device.network_type = request.network_type
-    if request.storage_remaining: device.storage_remaining = request.storage_remaining
-    if request.ram_usage: device.ram_usage = request.ram_usage
-    if request.android_version: device.android_version = request.android_version
+    if "is_charging" in data: device.is_charging = str(data["is_charging"]).lower() == 'true'
+    if "app_version" in data: device.app_version = str(data["app_version"])
+    if "foreground_service_running" in data: device.foreground_service_running = str(data["foreground_service_running"]).lower() == 'true'
+    if "network_type" in data: device.network_type = str(data["network_type"])
+    if "storage_remaining" in data: device.storage_remaining = str(data["storage_remaining"])
+    if "ram_usage" in data: device.ram_usage = str(data["ram_usage"])
+    if "android_version" in data: device.android_version = str(data["android_version"])
     
     device.last_seen = datetime.now(timezone.utc)
     device.status = "ONLINE"
