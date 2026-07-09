@@ -90,6 +90,8 @@ def delete_device(device_id: int, db: Session = Depends(get_db), current_user: U
     device.status = "ARCHIVED"
     device.pairing_token = None
     device.jwt_identifier = None
+    # Free up the device UUID so the physical Android device can re-pair later without IntegrityError
+    device.device_uuid = f"archived_{secrets.token_hex(4)}_{device.device_uuid}"
     db.commit()
     return {"message": "Device archived successfully"}
 
@@ -134,7 +136,16 @@ async def register_device(request: Request, db: Session = Depends(get_db)):
     if not device:
         raise HTTPException(status_code=404, detail="Invalid pairing token")
         
-    device.device_uuid = actual_uuid or ("uuid_" + secrets.token_hex(8))
+    final_uuid = actual_uuid or ("uuid_" + secrets.token_hex(8))
+    
+    # CRITICAL FIX: If the Android device's UUID is already in the DB (e.g. from an old deleted pairing that wasn't renamed, or a dirty state), 
+    # we MUST rename the old record's UUID to prevent a 500 Internal Server Error (IntegrityError: unique constraint) when assigning it here!
+    conflict = db.query(Device).filter(Device.device_uuid == final_uuid).first()
+    if conflict and conflict.id != device.id:
+        conflict.device_uuid = f"reassigned_{secrets.token_hex(4)}_{conflict.device_uuid}"
+        db.commit() # Free it up
+        
+    device.device_uuid = final_uuid
     device.pairing_token = None
     device.status = "ONLINE"
     device.last_seen = datetime.now(timezone.utc)
