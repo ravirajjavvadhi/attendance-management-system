@@ -20,9 +20,13 @@ def login_access_token(
     OAuth2 compatible token login, get an access token for future requests.
     Expects username (can be email or mobile) and password.
     """
-    user = db.query(User).filter(
+    users = db.query(User).filter(
         (User.email == form_data.username) | (User.mobile_number == form_data.username)
-    ).first()
+    ).all()
+    
+    role_priority = {"SUPERADMIN": 1, "MANAGEMENT": 2, "ADMIN": 3, "FACULTY": 4, "STUDENT": 5, "PARENT": 6}
+    user = min(users, key=lambda u: role_priority.get(u.role, 99)) if users else None
+
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -50,8 +54,9 @@ def login_google(request: GoogleAuthRequest, db: Session = Depends(get_db)):
     if request.secret != settings.SECRET_KEY:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid application secret")
     
-    user = db.query(User).filter(User.email == request.email).first()
-    if not user:
+    users = db.query(User).filter(User.email == request.email).all()
+    
+    if not users:
         if request.email in ["ravirajjavvadhi@gmail.com", "ravirajjavvadi@gmail.com"]:
             # Auto-provision Super Admin
             from app.models.tenant import Institution
@@ -79,6 +84,9 @@ def login_google(request: GoogleAuthRequest, db: Session = Depends(get_db)):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found in system. Please contact your institution administrator to be onboarded."
             )
+    else:
+        role_priority = {"SUPERADMIN": 1, "MANAGEMENT": 2, "ADMIN": 3, "FACULTY": 4, "STUDENT": 5, "PARENT": 6}
+        user = min(users, key=lambda u: role_priority.get(u.role, 99))
         
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
