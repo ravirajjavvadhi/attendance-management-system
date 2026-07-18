@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 
@@ -34,3 +34,27 @@ class FacultySectionAssignment(Base):
     section_id = Column(Integer, ForeignKey("sections.id"), nullable=False)
     subject_id = Column(Integer, ForeignKey("courses.id"), nullable=True) # Future extension
 
+
+class ParentProfile(Base):
+    __tablename__ = "parent_profiles"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    name = Column(String, nullable=True)
+    email = Column(String, nullable=True)
+    pin_hash = Column(String, nullable=True) # For 6-digit PIN login
+    device_token = Column(String, nullable=True) # For Push Notifications
+    biometric_enabled = Column(Boolean, default=False)
+    status = Column(String, default="ACTIVE") # ACTIVE, BLOCKED, PENDING (for management approval)
+
+class ParentStudentLink(Base):
+    __tablename__ = "parent_student_links"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    parent_id = Column(Integer, ForeignKey("parent_profiles.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("student_profiles.id"), nullable=False)
+    relationship = Column(String, nullable=False, default="PRIMARY") # FATHER, MOTHER, GUARDIAN, BROTHER, SISTER, OTHER
+    is_primary = Column(Boolean, default=False)
+    receive_notifications = Column(Boolean, default=True)
+    receive_sms = Column(Boolean, default=True)
+    receive_push = Column(Boolean, default=True)

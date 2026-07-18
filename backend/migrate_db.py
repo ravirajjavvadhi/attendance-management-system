@@ -26,10 +26,30 @@ def apply_migrations():
         except Exception as e:
             print("Failed to migrate status:", e)
 
+        try:
+            conn.execute(text("ALTER TABLE attendance_records ADD COLUMN subject_id INTEGER REFERENCES erp_subjects(id);"))
+            print("Added subject_id to attendance_records")
+        except Exception as e:
+            print("subject_id already exists or error:", e)
+
+        try:
+            conn.execute(text("ALTER TABLE attendance_records ADD COLUMN timetable_id INTEGER REFERENCES erp_timetable(id);"))
+            print("Added timetable_id to attendance_records")
+        except Exception as e:
+            print("timetable_id already exists or error:", e)
+
         conn.commit()
 
-    # Create new tables (like faculty_section_assignments)
-    from app.models.profiles import FacultySectionAssignment
+    # Create new tables (like faculty_section_assignments, erp models)
+    from app.models.profiles import ParentProfile, ParentStudentLink, StudentProfile, FacultyProfile
+    from app.models.academic import AcademicYear, Section
+    from app.models.erp_academic import Branch, Semester, Subject, Period, Timetable, FacultySubjectAllocation
+    from app.models.calendar import SemesterTerm, CalendarDay
+    from app.models.attendance import AttendanceRecord, AttendanceSession
+    from app.models.examination import Exam, ExamResult
+    from app.models.assignment import Assignment, AssignmentSubmission
+    from app.models.communication import CampusNotice, TimelineEvent
+    from app.models.tenant import InstitutionModules
     Base.metadata.create_all(bind=engine)
     print("Created new tables.")
 
