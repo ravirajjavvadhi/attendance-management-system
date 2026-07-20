@@ -12,7 +12,6 @@ function LoginForm() {
   const urlError = searchParams?.get("error");
   
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState(urlError ? `Authentication Error: ${urlError}. Please try again.` : "");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -25,11 +24,10 @@ function LoginForm() {
       const res = await signIn("credentials", {
         redirect: false,
         username,
-        password,
       });
 
       if (res?.error) {
-        setError("Invalid credentials. Please try again.");
+        setError("User not found in system. Please contact your administrator.");
       } else {
         router.push("/dashboard");
       }
@@ -94,26 +92,10 @@ function LoginForm() {
             />
           </div>
           
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground flex justify-between" htmlFor="password">
-              Password
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors text-xs">Forgot password?</a>
-            </label>
-            <input 
-              id="password"
-              type="password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
-              required
-            />
-          </div>
-          
           <button 
             type="submit" 
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-medium py-2.5 px-4 rounded-lg transition-colors mt-2 disabled:opacity-70"
+            className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-medium py-2.5 px-4 rounded-lg transition-colors mt-6 disabled:opacity-70"
           >
             {isLoading ? "Signing in..." : (
               <>Sign in <ArrowRight className="w-4 h-4" /></>

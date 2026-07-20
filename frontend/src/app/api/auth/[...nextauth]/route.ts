@@ -15,11 +15,27 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) return null;
+        if (!credentials?.username) return null;
         
         try {
-          // Calling our FastAPI backend
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`, {
+          const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+          
+          // Passwordless flow
+          if (!credentials?.password) {
+            const res = await fetch(`${baseUrl}/api/v1/auth/passwordless`, {
+              method: 'POST',
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: credentials.username })
+            });
+            const data = await res.json();
+            if (res.ok && data.access_token) {
+              return { id: credentials.username, email: credentials.username, token: data.access_token };
+            }
+            return null;
+          }
+          
+          // Fallback legacy password login
+          const res = await fetch(`${baseUrl}/api/v1/auth/login`, {
             method: 'POST',
             body: new URLSearchParams({
               username: credentials.username,
@@ -29,9 +45,7 @@ export const authOptions: NextAuthOptions = {
           });
           
           const data = await res.json();
-          
           if (res.ok && data.access_token) {
-            // We use the email field just to store some user id since we don't fetch profile yet
             return { id: credentials.username, email: credentials.username, token: data.access_token };
           }
           return null;
