@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from app.db.database import get_db
 from app.api.deps import get_current_admin
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.academic import Class, Section, AcademicYear, Department
 from app.models.profiles import StudentProfile
 
