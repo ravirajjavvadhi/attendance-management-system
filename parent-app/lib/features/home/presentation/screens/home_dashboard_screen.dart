@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eduflow_core/eduflow_core.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
+import '../../../../core/notification/notification_helper.dart';
 
 // Provide the dashboard data
 final parentDashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
@@ -87,6 +88,38 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<Map<String, dynamic>>>(parentDashboardProvider, (previous, next) {
+      if (next.hasValue && next.value != null) {
+        final nextData = next.value!;
+        final prevData = previous?.value;
+
+        // 1. Check for new notifications
+        final nextNotifs = (nextData['notifications'] as List?) ?? [];
+        final prevNotifs = (prevData?['notifications'] as List?) ?? [];
+        if (prevNotifs.isNotEmpty && nextNotifs.length > prevNotifs.length) {
+          final newNotif = nextNotifs.first;
+          NotificationHelper.showNotification(
+            newNotif['title'] ?? 'New Notification',
+            newNotif['message'] ?? '',
+          );
+        }
+
+        // 2. Check for new upcoming events
+        final nextEvents = (nextData['upcomingEvents'] as List?) ?? [];
+        final prevEvents = (prevData?['upcomingEvents'] as List?) ?? [];
+        if (prevEvents.isNotEmpty && nextEvents.length > prevEvents.length) {
+          final prevIds = prevEvents.map((e) => e['id']).toSet();
+          final newEvent = nextEvents.firstWhere((e) => !prevIds.contains(e['id']), orElse: () => null);
+          if (newEvent != null) {
+            NotificationHelper.showNotification(
+              'New Upcoming Event',
+              '${newEvent['title']}: ${newEvent['description'] ?? ""}',
+            );
+          }
+        }
+      }
+    });
+
     final dashboardAsync = ref.watch(parentDashboardProvider);
 
     return Scaffold(

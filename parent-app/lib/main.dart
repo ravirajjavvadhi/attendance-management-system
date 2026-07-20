@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router/app_router.dart';
+import 'core/notification/notification_helper.dart';
 import 'package:eduflow_core/eduflow_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,6 +10,7 @@ void main() async {
   
   // Initialize Core Services
   await HiveService.init();
+  await NotificationHelper.init();
   
   final prefs = await SharedPreferences.getInstance();
   final authService = AuthService(prefs);
