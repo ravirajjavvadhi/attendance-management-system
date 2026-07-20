@@ -8,8 +8,9 @@ class DioClient {
 
   DioClient(this._dio, this._authService) {
     _dio.options.baseUrl = 'https://attendance-management-system-afk0.onrender.com/api/v1';
-    _dio.options.connectTimeout = const Duration(seconds: 10);
-    _dio.options.receiveTimeout = const Duration(seconds: 10);
+    _dio.options.connectTimeout = const Duration(seconds: 60);
+    _dio.options.receiveTimeout = const Duration(seconds: 60);
+    _dio.options.sendTimeout = const Duration(seconds: 60);
 
     _dio.interceptors.add(
       InterceptorsWrapper(

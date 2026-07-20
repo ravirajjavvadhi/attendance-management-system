@@ -105,9 +105,46 @@ def login_passwordless(request: PasswordlessAuthRequest, db: Session = Depends(g
     ).all()
     
     if not users:
+        # Check if request.email matches a student's roll_number
+        from app.models.profiles import StudentProfile
+        student = db.query(StudentProfile).filter(func.lower(StudentProfile.roll_number) == func.lower(request.email)).first()
+        if student:
+            if not student.user_id:
+                from app.models.academic import Section
+                from app.models.user import UserRole
+                from app.core.security import get_password_hash
+                
+                section = db.query(Section).filter(Section.id == student.section_id).first()
+                tenant_id = section.tenant_id if section else 1
+                
+                # Check if a user with this auto-generated email already exists (retry-safe)
+                auto_email = f"student_{student.id}@eduflow.com"
+                existing_user = db.query(User).filter(User.email == auto_email).first()
+                if existing_user:
+                    student.user_id = existing_user.id
+                    db.commit()
+                else:
+                    student_user = User(
+                        email=auto_email,
+                        role=UserRole.STUDENT.value,
+                        is_active=True,
+                        tenant_id=tenant_id,
+                        hashed_password=get_password_hash("123456")
+                    )
+                    db.add(student_user)
+                    db.commit()
+                    db.refresh(student_user)
+                    
+                    student.user_id = student_user.id
+                    db.commit()
+                
+            user = db.query(User).filter(User.id == student.user_id).first()
+            users = [user] if user else []
+            
+    if not users:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found in system. Please contact your administrator.",
+            detail="Roll number not found. Please check your roll number or contact your institution.",
         )
         
     role_priority = {"SUPERADMIN": 1, "MANAGEMENT": 2, "ADMIN": 3, "FACULTY": 4, "STUDENT": 5, "PARENT": 6}
