@@ -154,6 +154,18 @@ def get_parent_dashboard(
                             "status": "UPCOMING"
                         })
     
+    # Fetch Real Upcoming Events
+    from app.models.academic import Event
+    events = db.query(Event).filter(Event.tenant_id == current_user.tenant_id).order_by(Event.event_date.desc()).limit(3).all()
+    upcoming_events = [
+        {
+            "id": e.id,
+            "title": e.title,
+            "description": e.description or "",
+            "date": e.event_date.isoformat()
+        } for e in events
+    ]
+    
     return {
         "status": "success",
         "data": {
@@ -188,6 +200,60 @@ def get_parent_dashboard(
             "aiInsights": {
                 "trend": "Positive",
                 "message": f"Real-time attendance summary for {student_name} is active."
-            }
+            },
+            "upcomingEvents": upcoming_events
+        }
+
+    }
+
+@router.get("/profile")
+def get_parent_profile(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    from app.models.profiles import ParentProfile, StudentProfile, ParentStudentLink
+    from app.models.academic import Section, Class, Department
+    
+    parent_prof = db.query(ParentProfile).filter(ParentProfile.user_id == current_user.id).first()
+    if not parent_prof:
+        raise HTTPException(status_code=404, detail="Parent profile not found")
+        
+    linked_students = []
+    links = db.query(ParentStudentLink).filter(ParentStudentLink.parent_id == parent_prof.id).all()
+    for link in links:
+        student = db.query(StudentProfile).filter(StudentProfile.id == link.student_id).first()
+        if student:
+            section_name = "N/A"
+            class_name = "N/A"
+            dept_name = "N/A"
+            if student.section_id:
+                sec = db.query(Section).filter(Section.id == student.section_id).first()
+                if sec:
+                    section_name = sec.name
+                    cls = db.query(Class).filter(Class.id == sec.class_id).first()
+                    if cls:
+                        class_name = cls.name
+                        dept = db.query(Department).filter(Department.id == cls.department_id).first()
+                        if dept:
+                            dept_name = dept.name
+                            
+            linked_students.append({
+                "id": student.id,
+                "name": student.name,
+                "roll_number": student.roll_number,
+                "department": dept_name,
+                "class": class_name,
+                "section": section_name
+            })
+            
+    return {
+        "status": "success",
+        "data": {
+            "id": parent_prof.id,
+            "name": parent_prof.name,
+            "email": current_user.email,
+            "mobile": current_user.mobile_number,
+            "relationship": parent_prof.relationship_to_student,
+            "students": linked_students
         }
     }

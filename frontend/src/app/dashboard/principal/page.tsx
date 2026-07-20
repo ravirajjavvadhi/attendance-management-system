@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, UserCheck, UserX, TrendingUp, AlertCircle, MessageSquare } from "lucide-react";
+import { Users, UserCheck, UserX, TrendingUp, AlertCircle, MessageSquare, CalendarPlus, Plus, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 export default function PrincipalDashboard() {
@@ -41,6 +41,48 @@ export default function PrincipalDashboard() {
   }, [token]);
 
   const [selectedNotification, setSelectedNotification] = useState<any | null>(null);
+
+  // ── Events State ──
+  const [events, setEvents] = useState<any[]>([]);
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventDesc, setEventDesc] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [eventSubmitting, setEventSubmitting] = useState(false);
+
+  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+
+  const fetchEvents = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${baseUrl}/api/v1/management/events`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) setEvents(await res.json());
+    } catch (e) { console.error("Failed to fetch events", e); }
+  };
+
+  const handleCreateEvent = async () => {
+    if (!token || !eventTitle || !eventDate) return;
+    setEventSubmitting(true);
+    try {
+      const res = await fetch(`${baseUrl}/api/v1/management/events`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ title: eventTitle, description: eventDesc, event_date: eventDate })
+      });
+      if (res.ok) {
+        setEventTitle(""); setEventDesc(""); setEventDate("");
+        setShowEventForm(false);
+        fetchEvents();
+      } else {
+        const d = await res.json();
+        alert(d.detail || "Failed to create event");
+      }
+    } finally { setEventSubmitting(false); }
+  };
+
+  useEffect(() => { fetchEvents(); }, [token]);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -177,6 +219,94 @@ export default function PrincipalDashboard() {
           </div>
         </>
       )}
+
+      {/* ── Upcoming Events Management ── */}
+      <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-border flex justify-between items-center">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <CalendarPlus className="w-5 h-5 text-primary" /> Upcoming Events
+          </h2>
+          <button
+            onClick={() => setShowEventForm(!showEventForm)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Create Event
+          </button>
+        </div>
+
+        {showEventForm && (
+          <div className="p-6 border-b border-border bg-secondary/20 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Event Title *</label>
+                <input
+                  type="text"
+                  value={eventTitle}
+                  onChange={e => setEventTitle(e.target.value)}
+                  placeholder="e.g. Mid-1 Examinations"
+                  className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Event Date *</label>
+                <input
+                  type="datetime-local"
+                  value={eventDate}
+                  onChange={e => setEventDate(e.target.value)}
+                  className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Description (Optional)</label>
+              <textarea
+                value={eventDesc}
+                onChange={e => setEventDesc(e.target.value)}
+                placeholder="Add details about the event..."
+                rows={2}
+                className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+              />
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setShowEventForm(false)} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">Cancel</button>
+              <button
+                onClick={handleCreateEvent}
+                disabled={eventSubmitting || !eventTitle || !eventDate}
+                className="px-5 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              >
+                {eventSubmitting ? "Publishing..." : "Publish Event"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="p-6">
+          {events.length === 0 ? (
+            <div className="text-center text-muted-foreground text-sm py-8">
+              No upcoming events. Click &quot;Create Event&quot; to announce one to all parents.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {events.map((evt: any) => (
+                <div key={evt.id} className="flex justify-between items-center p-4 bg-secondary/30 rounded-xl border border-border">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <CalendarPlus className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">{evt.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(evt.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {evt.description ? ` • ${evt.description}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Notification Modal */}
       {selectedNotification && (

@@ -46,3 +46,13 @@ class Section(Base):
     class_id = Column(Integer, ForeignKey("classes.id"))
     name = Column(String, nullable=False) # e.g. "A", "B"
     admission_year = Column(Integer, nullable=True) # Used for smart year calculation (e.g., 2022)
+
+class Event(Base):
+    __tablename__ = "events"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    event_date = Column(DateTime, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
