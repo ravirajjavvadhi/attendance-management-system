@@ -7,6 +7,7 @@ from app.models.profiles import ParentProfile, ParentStudentLink, StudentProfile
 from app.core.security import create_access_token
 from datetime import timedelta, date
 from typing import Optional
+from app.api.deps import get_current_user
 
 router = APIRouter()
 
@@ -95,7 +96,6 @@ def get_parent_dashboard(
     Returns aggregated JSON payload for the Parent App dashboard.
     Dynamically loads student details based on parent email/user mapping.
     """
-    from app.api.deps import get_current_user
     
     # Locate Parent Profile
     parent = db.query(ParentProfile).filter(ParentProfile.user_id == current_user.id).first()
