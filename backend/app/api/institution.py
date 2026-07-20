@@ -288,54 +288,50 @@ def delete_institution(
         
     from sqlalchemy import text
 
-    # Complete FK-safe deletion order.
-    # Each query is executed independently — failures are silently skipped
-    # so missing/optional tables never block the cascade.
+    # Correct FK-safe deletion order based on actual FK graph:
+    # notification_logs.device_id -> devices
+    # devices.tenant_id -> institutions
+    # devices.user_id -> users
+    # timeline_events.user_id -> users
+    # All profile tables -> users
+    # users.tenant_id -> institutions
     deletion_steps = [
-        # ── LEVEL 1: deepest leaf records (reference student/faculty/section) ──
-        # exam_results references exams and student_profiles
+        # Level 1a: leaf records that reference exams/assignments
         "DELETE FROM exam_results WHERE exam_id IN (SELECT id FROM exams WHERE tenant_id = :id)",
-        # assignment_submissions references assignments and student_profiles
         "DELETE FROM assignment_submissions WHERE assignment_id IN (SELECT id FROM assignments WHERE tenant_id = :id)",
-        # attendance_records references student_profiles and sections
+        # Level 1b: attendance (references students/sections)
         "DELETE FROM attendance_records WHERE tenant_id = :id",
         "DELETE FROM attendance_sessions WHERE tenant_id = :id",
-        # sms_queue may reference students/users
-        "DELETE FROM sms_queue WHERE tenant_id = :id",
-        # notification_logs
+        # Level 1c: notification_logs MUST come before devices (has device_id FK)
         "DELETE FROM notification_logs WHERE tenant_id = :id",
-        # campus_notices / timeline_events / calendar_days
+        # Level 1d: sms/comms
+        "DELETE FROM sms_queue WHERE tenant_id = :id",
         "DELETE FROM campus_notices WHERE tenant_id = :id",
+        # Level 1e: timeline_events MUST come before users (has user_id FK)
         "DELETE FROM timeline_events WHERE tenant_id = :id",
         "DELETE FROM calendar_days WHERE tenant_id = :id",
         "DELETE FROM semester_terms WHERE tenant_id = :id",
-        # erp timetable references erp_periods and erp_subjects
+        # Level 1f: ERP
         "DELETE FROM erp_timetable WHERE tenant_id = :id",
         "DELETE FROM erp_faculty_subject_allocations WHERE faculty_user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
         "DELETE FROM erp_periods WHERE tenant_id = :id",
         "DELETE FROM erp_subjects WHERE tenant_id = :id",
         "DELETE FROM erp_semesters WHERE tenant_id = :id",
         "DELETE FROM erp_branches WHERE tenant_id = :id",
-
-        # ── LEVEL 2: junction/link tables ──
-        # parent_student_links references parent_profiles and student_profiles
+        # Level 2: junction tables
         "DELETE FROM parent_student_links WHERE student_id IN (SELECT id FROM student_profiles WHERE section_id IN (SELECT id FROM sections WHERE tenant_id = :id))",
         "DELETE FROM parent_student_links WHERE parent_id IN (SELECT id FROM parent_profiles WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id))",
-        # faculty_section_assignments references faculty users and sections
         "DELETE FROM faculty_section_assignments WHERE section_id IN (SELECT id FROM sections WHERE tenant_id = :id)",
         "DELETE FROM faculty_section_assignments WHERE faculty_user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
-
-        # ── LEVEL 3: profile tables ──
+        # Level 3: profile tables
         "DELETE FROM parent_profiles WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
         "DELETE FROM faculty_profiles WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
-        # student_profiles linked by user OR by section
         "DELETE FROM student_profiles WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
         "DELETE FROM student_profiles WHERE section_id IN (SELECT id FROM sections WHERE tenant_id = :id)",
-
-        # ── LEVEL 4: device tokens ──
+        # Level 4: devices — MUST come after notification_logs, before users & institution
         "DELETE FROM devices WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
-
-        # ── LEVEL 5: academic structure ──
+        "DELETE FROM devices WHERE tenant_id = :id",
+        # Level 5: academic structure
         "DELETE FROM exams WHERE tenant_id = :id",
         "DELETE FROM assignments WHERE tenant_id = :id",
         "DELETE FROM sections WHERE tenant_id = :id",
@@ -343,12 +339,10 @@ def delete_institution(
         "DELETE FROM courses WHERE tenant_id = :id",
         "DELETE FROM departments WHERE tenant_id = :id",
         "DELETE FROM academic_years WHERE tenant_id = :id",
-
-        # ── LEVEL 6: institution config ──
+        # Level 6: institution config
         "DELETE FROM institution_modules WHERE tenant_id = :id",
         "DELETE FROM sms_templates WHERE tenant_id = :id",
-
-        # ── LEVEL 7: users (must come after all profile/device deletions) ──
+        # Level 7: users — MUST be last before institution itself
         "DELETE FROM users WHERE tenant_id = :id",
     ]
 
@@ -361,7 +355,10 @@ def delete_institution(
                 db.execute(text(f"RELEASE SAVEPOINT {sp}"))
             except Exception:
                 # Roll back only this one step — previous deletions are preserved
-                db.execute(text(f"ROLLBACK TO SAVEPOINT {sp}"))
+                try:
+                    db.execute(text(f"ROLLBACK TO SAVEPOINT {sp}"))
+                except Exception:
+                    pass
 
         # Re-fetch institution (ORM object may be stale after raw SQL)
         institution = db.query(Institution).filter(Institution.id == institution_id).first()
@@ -373,4 +370,3 @@ def delete_institution(
         raise HTTPException(status_code=500, detail=f"Failed to delete institution: {str(e)}")
         
     return {"message": "Institution and all associated data deleted successfully"}
-
