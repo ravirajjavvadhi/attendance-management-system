@@ -55,6 +55,9 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
           final end = DateTime(now.year, now.month, now.day, int.parse(endParts[0]), int.parse(endParts[1]));
 
           if (now.isAfter(start) && now.isBefore(end)) {
+            if (tt['subject'].toString().toLowerCase().contains('break')) {
+              continue;
+            }
             return tt;
           }
         }

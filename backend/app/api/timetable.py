@@ -119,7 +119,7 @@ def save_timetable(
     # Get or create active academic year
     active_year = db.query(AcademicYear).filter(
         AcademicYear.tenant_id == current_user.tenant_id,
-        AcademicYear.is_active == True
+        AcademicYear.is_current == True
     ).first()
     if not active_year:
         # Create a default academic year if none exists
@@ -130,7 +130,7 @@ def save_timetable(
             name=f"{year}-{year+1}",
             start_date=date(year, 6, 1),
             end_date=date(year + 1, 5, 31),
-            is_active=True
+            is_current=True
         )
         db.add(active_year)
         db.flush()
@@ -174,11 +174,14 @@ def save_timetable(
                 db.add(period)
                 db.flush()
 
-            if p_entry.is_break:
-                continue  # Don't create timetable entry for breaks
-
             # Get or create Subject
-            code = (p_entry.subject_code or p_entry.subject_name[:6].upper().replace(" ", "")).strip()
+            if p_entry.is_break:
+                subj_name = p_entry.subject_name or "Break"
+                code = "BREAK"
+            else:
+                subj_name = p_entry.subject_name
+                code = (p_entry.subject_code or p_entry.subject_name[:6].upper().replace(" ", "")).strip()
+
             subject = db.query(Subject).filter(
                 Subject.tenant_id == current_user.tenant_id,
                 Subject.code == code
@@ -187,7 +190,7 @@ def save_timetable(
             if not subject:
                 subject = Subject(
                     tenant_id=current_user.tenant_id,
-                    name=p_entry.subject_name,
+                    name=subj_name,
                     code=code,
                     credits=0
                 )
