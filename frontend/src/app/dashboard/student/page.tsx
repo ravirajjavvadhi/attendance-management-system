@@ -25,6 +25,7 @@ export default function StudentManagement() {
   
   const [rollNumbersInput, setRollNumbersInput] = useState("");
   
+  const [departments, setDepartments] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
@@ -32,6 +33,8 @@ export default function StudentManagement() {
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedSectionId, setSelectedSectionId] = useState("");
   
+  const [newDeptName, setNewDeptName] = useState("");
+  const [newDeptCode, setNewDeptCode] = useState("");
   const [newClassName, setNewClassName] = useState("");
   const [newSectionName, setNewSectionName] = useState("");
   const [setupClassId, setSetupClassId] = useState("");
@@ -50,12 +53,14 @@ export default function StudentManagement() {
     try {
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
       
-      const [clsRes, secRes, stuRes] = await Promise.all([
+      const [deptRes, clsRes, secRes, stuRes] = await Promise.all([
+        fetch(`${baseUrl}/api/v1/academic/departments`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${baseUrl}/api/v1/academic/classes`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${baseUrl}/api/v1/academic/sections`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${baseUrl}/api/v1/academic/students`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
       
+      if (deptRes.ok) setDepartments(await deptRes.json());
       if (clsRes.ok) setClasses(await clsRes.json());
       if (secRes.ok) setSections(await secRes.json());
       if (stuRes.ok) setStudents(await stuRes.json());
@@ -70,6 +75,30 @@ export default function StudentManagement() {
   useEffect(() => {
     fetchData();
   }, [token]);
+
+  const handleCreateDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !newDeptName.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const res = await fetch(`${baseUrl}/api/v1/academic/departments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: newDeptName.trim(), code: newDeptCode.trim() || undefined })
+      });
+      if (res.ok) { setNewDeptName(""); setNewDeptCode(""); fetchData(); }
+    } finally { setIsSubmitting(false); }
+  };
+
+  const handleDeleteDepartment = async (id: number) => {
+    if (!confirm("Delete this department? Classes and sections under it will remain.")) return;
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+    await fetch(`${baseUrl}/api/v1/academic/departments/${id}`, {
+      method: "DELETE", headers: { Authorization: `Bearer ${token}` }
+    });
+    fetchData();
+  };
 
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,9 +262,43 @@ export default function StudentManagement() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            {/* Step 1: Department */}
             <div className="space-y-4 border-r pr-4">
-              <h4 className="font-semibold text-sm">1. Create a Class (e.g. "Grade 10", "B.Tech 1st Year")</h4>
+              <h4 className="font-semibold text-sm text-purple-500">1. Department (e.g. "CSE", "ECE")</h4>
+              <form onSubmit={handleCreateDepartment} className="space-y-2">
+                <input
+                  type="text"
+                  required
+                  value={newDeptName}
+                  onChange={(e) => setNewDeptName(e.target.value)}
+                  placeholder="Department Name (e.g. CSE)"
+                  className="w-full bg-background border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newDeptCode}
+                    onChange={(e) => setNewDeptCode(e.target.value)}
+                    placeholder="Code (optional, e.g. CSE)"
+                    className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  />
+                  <button type="submit" disabled={isSubmitting} className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium">Add</button>
+                </div>
+              </form>
+              <div className="flex flex-wrap gap-2 pt-2">
+                {departments.map(d => (
+                  <span key={d.id} className="flex items-center gap-1 bg-purple-500/10 text-purple-600 border border-purple-500/20 px-3 py-1 rounded-full text-xs font-medium">
+                    {d.code ? `${d.name} (${d.code})` : d.name}
+                    <button onClick={() => handleDeleteDepartment(d.id)} className="ml-1 hover:text-red-500 transition-colors">×</button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Step 2: Class/Year */}
+            <div className="space-y-4 border-r pr-4">
+              <h4 className="font-semibold text-sm text-blue-500">2. Class / Year (e.g. "1st Year", "B.Tech")</h4>
               <form onSubmit={handleCreateClass} className="flex gap-2">
                 <input
                   type="text"
@@ -248,34 +311,37 @@ export default function StudentManagement() {
                 <button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium">Add</button>
               </form>
               <div className="flex flex-wrap gap-2 pt-2">
-                {classes.map(c => <span key={c.id} className="bg-secondary px-3 py-1 rounded-full text-xs font-medium">{c.name}</span>)}
+                {classes.map(c => <span key={c.id} className="bg-blue-500/10 text-blue-600 border border-blue-500/20 px-3 py-1 rounded-full text-xs font-medium">{c.name}</span>)}
               </div>
             </div>
             
+            {/* Step 3: Section */}
             <div className="space-y-4">
-              <h4 className="font-semibold text-sm">2. Add Sections to Class (e.g. "A", "Science")</h4>
-              <form onSubmit={handleCreateSection} className="flex gap-2">
+              <h4 className="font-semibold text-sm text-green-500">3. Section (e.g. "A", "B", "Morning")</h4>
+              <form onSubmit={handleCreateSection} className="space-y-2">
                 <select 
                   required
                   value={setupClassId}
                   onChange={(e) => setSetupClassId(e.target.value)}
-                  className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50"
                 >
                   <option value="">Select Class...</option>
                   {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
-                <input
-                  type="text"
-                  required
-                  value={newSectionName}
-                  onChange={(e) => setNewSectionName(e.target.value)}
-                  placeholder="Section Name"
-                  className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-                <button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium">Add</button>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={newSectionName}
+                    onChange={(e) => setNewSectionName(e.target.value)}
+                    placeholder="Section Name (e.g. A)"
+                    className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                  />
+                  <button type="submit" disabled={isSubmitting} className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium">Add</button>
+                </div>
               </form>
               <div className="flex flex-wrap gap-2 pt-2">
-                {sections.map(s => <span key={s.id} className="bg-secondary px-3 py-1 rounded-full text-xs font-medium">{s.name}</span>)}
+                {sections.map(s => <span key={s.id} className="bg-green-500/10 text-green-600 border border-green-500/20 px-3 py-1 rounded-full text-xs font-medium">{s.name}</span>)}
               </div>
             </div>
           </div>

@@ -6,17 +6,54 @@ from pydantic import BaseModel
 from app.db.database import get_db
 from app.api.deps import get_current_admin
 from app.models.user import User
-from app.models.academic import Class, Section, AcademicYear
+from app.models.academic import Class, Section, AcademicYear, Department
 from app.models.profiles import StudentProfile
 
 router = APIRouter()
 
+class DepartmentCreate(BaseModel):
+    name: str
+    code: Optional[str] = None
+
 class ClassCreate(BaseModel):
     name: str
+    department_id: Optional[int] = None
 
 class SectionCreate(BaseModel):
     name: str
     class_id: int
+
+@router.get("/departments")
+def get_departments(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    return db.query(Department).filter(Department.tenant_id == current_user.tenant_id).all()
+
+@router.post("/departments", status_code=status.HTTP_201_CREATED)
+def create_department(
+    request: DepartmentCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    dept = Department(name=request.name, code=request.code, tenant_id=current_user.tenant_id)
+    db.add(dept)
+    db.commit()
+    db.refresh(dept)
+    return dept
+
+@router.delete("/departments/{department_id}", status_code=status.HTTP_200_OK)
+def delete_department(
+    department_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    dept = db.query(Department).filter(Department.id == department_id, Department.tenant_id == current_user.tenant_id).first()
+    if not dept:
+        raise HTTPException(status_code=404, detail="Department not found")
+    db.delete(dept)
+    db.commit()
+    return {"message": "Department deleted"}
 
 @router.post("/classes", status_code=status.HTTP_201_CREATED)
 def create_class(
@@ -36,6 +73,7 @@ def get_classes(
     current_user: User = Depends(get_current_admin)
 ):
     return db.query(Class).filter(Class.tenant_id == current_user.tenant_id).all()
+
 
 @router.post("/sections", status_code=status.HTTP_201_CREATED)
 def create_section(
@@ -276,7 +314,7 @@ def get_students(
     if section_id:
         query = query.filter(Section.id == section_id)
         
-    if current_user.role == "faculty":
+    if current_user.role == UserRole.FACULTY.value:
         # Check access level
         profile = db.query(FacultyProfile).filter(FacultyProfile.user_id == current_user.id).first()
         if profile and profile.access_level != "FULL_INSTITUTION_ACCESS":
