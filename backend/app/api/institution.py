@@ -312,15 +312,39 @@ def delete_institution(
     ]
     
     try:
-        # Delete user-dependent profiles and links first
+        # STEP 1: Delete records that reference student_profiles or faculty profiles (must go first)
+        pre_profile_queries = [
+            # attendance_records references student_id in student_profiles
+            "DELETE FROM attendance_records WHERE tenant_id = :id",
+            "DELETE FROM attendance_sessions WHERE tenant_id = :id",
+            # faculty_section_assignments references faculty_user_id
+            "DELETE FROM faculty_section_assignments WHERE section_id IN (SELECT id FROM sections WHERE tenant_id = :id)",
+            "DELETE FROM faculty_section_assignments WHERE faculty_user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
+        ]
+        for query in pre_profile_queries:
+            try:
+                db.execute(text(query), {"id": institution_id})
+            except Exception:
+                pass  # Table may not exist, continue
+        
+        # STEP 2: Delete user-dependent profiles and links
         for query in user_dependent_queries:
-            db.execute(text(query), {"id": institution_id})
+            try:
+                db.execute(text(query), {"id": institution_id})
+            except Exception:
+                pass  # Skip tables that may not exist
             
-        # Delete direct tenant-specific tables
+        # STEP 3: Delete direct tenant-specific tables (skip ones already deleted above)
+        skip_tables = {"attendance_records", "attendance_sessions"}
         for table in tenant_direct_tables:
-            db.execute(text(f"DELETE FROM {table} WHERE tenant_id = :id"), {"id": institution_id})
+            if table in skip_tables:
+                continue
+            try:
+                db.execute(text(f"DELETE FROM {table} WHERE tenant_id = :id"), {"id": institution_id})
+            except Exception:
+                pass  # Skip tables that may not exist
             
-        # Delete the institution itself
+        # STEP 4: Delete the institution itself
         db.delete(institution)
         db.commit()
     except Exception as e:
