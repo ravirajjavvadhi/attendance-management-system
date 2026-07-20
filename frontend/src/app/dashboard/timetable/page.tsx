@@ -67,7 +67,7 @@ export default function TimetablePage() {
       fetch(`${baseUrl}/api/v1/academic/departments`, { headers: authHeaders }),
       fetch(`${baseUrl}/api/v1/academic/classes`, { headers: authHeaders }),
       fetch(`${baseUrl}/api/v1/academic/sections`, { headers: authHeaders }),
-      fetch(`${baseUrl}/api/v1/timetable/faculty/list`, { headers: authHeaders }),
+      fetch(`${baseUrl}/api/v1/academic/timetable/faculty/list`, { headers: authHeaders }),
     ]);
     if (dR.ok) setDepartments(await dR.json());
     if (cR.ok) setClasses(await cR.json());
@@ -81,7 +81,7 @@ export default function TimetablePage() {
   useEffect(() => {
     if (!selectedSection || !token) return;
     setLoading(true);
-    fetch(`${baseUrl}/api/v1/timetable/${selectedSection}`, { headers: authHeaders })
+    fetch(`${baseUrl}/api/v1/academic/timetable/${selectedSection}`, { headers: authHeaders })
       .then(r => r.ok ? r.json() : {})
       .then(data => {
         const loaded: Record<string, PeriodRow[]> = Object.fromEntries(DAYS.map(d => [d, []]));
@@ -142,7 +142,7 @@ export default function TimetablePage() {
         })).filter(p => p.start_time && p.end_time)
       })).filter(d => d.periods.length > 0);
 
-      const res = await fetch(`${baseUrl}/api/v1/timetable/save`, {
+      const res = await fetch(`${baseUrl}/api/v1/academic/timetable/save`, {
         method: "POST",
         headers: authHeaders,
         body: JSON.stringify({ section_id: parseInt(selectedSection), days })
