@@ -134,7 +134,11 @@ def get_faculty_with_profiles(db: Session = Depends(get_db), current_management:
 
 @router.delete("/faculty/{user_id}", status_code=status.HTTP_200_OK)
 def delete_faculty(user_id: int, db: Session = Depends(get_db), current_management: User = Depends(get_current_management)):
-    user = db.query(User).filter(User.id == user_id, User.tenant_id == current_management.tenant_id, User.role == UserRole.FACULTY.value).first()
+    query = db.query(User).filter(User.id == user_id, User.role == UserRole.FACULTY.value)
+    if current_management.role != UserRole.SUPERADMIN.value:
+        query = query.filter(User.tenant_id == current_management.tenant_id)
+    user = query.first()
+    
     if not user:
         raise HTTPException(status_code=404, detail="Faculty not found")
         
@@ -148,7 +152,11 @@ def delete_faculty(user_id: int, db: Session = Depends(get_db), current_manageme
 
 @router.put("/faculty/{user_id}", status_code=status.HTTP_200_OK)
 def update_faculty(user_id: int, request: dict, db: Session = Depends(get_db), current_management: User = Depends(get_current_management)):
-    user = db.query(User).filter(User.id == user_id, User.tenant_id == current_management.tenant_id, User.role == UserRole.FACULTY.value).first()
+    query = db.query(User).filter(User.id == user_id, User.role == UserRole.FACULTY.value)
+    if current_management.role != UserRole.SUPERADMIN.value:
+        query = query.filter(User.tenant_id == current_management.tenant_id)
+    user = query.first()
+    
     if not user:
         raise HTTPException(status_code=404, detail="Faculty not found")
         

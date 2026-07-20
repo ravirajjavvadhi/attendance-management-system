@@ -93,3 +93,33 @@ def login_google(request: GoogleAuthRequest, db: Session = Depends(get_db)):
         data={"sub": str(user.id), "role": user.role, "tenant_id": user.tenant_id}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+class PasswordlessAuthRequest(BaseModel):
+    email: str
+
+@router.post("/passwordless", response_model=Token)
+def login_passwordless(request: PasswordlessAuthRequest, db: Session = Depends(get_db)):
+    from sqlalchemy import func
+    users = db.query(User).filter(
+        (func.lower(User.email) == func.lower(request.email)) | (User.mobile_number == request.email)
+    ).all()
+    
+    if not users:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found in system. Please contact your administrator.",
+        )
+        
+    role_priority = {"SUPERADMIN": 1, "MANAGEMENT": 2, "ADMIN": 3, "FACULTY": 4, "STUDENT": 5, "PARENT": 6}
+    user = min(users, key=lambda u: role_priority.get(u.role, 99))
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
+        )
+        
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(user.id), "role": user.role, "tenant_id": user.tenant_id}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}

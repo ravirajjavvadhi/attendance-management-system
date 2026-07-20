@@ -13,15 +13,13 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
   bool _isLoading = false;
 
   Future<void> _login() async {
     final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-    if (email.isEmpty || password.isEmpty) {
+    if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter email and password')),
+        const SnackBar(content: Text('Please enter your email')),
       );
       return;
     }
@@ -30,16 +28,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     
     try {
       final dio = ref.read(dioClientProvider).dio;
-      // Direct OAuth2 form-encoded login via central FastAPI backend
+      // Passwordless direct login via FastAPI backend
       final response = await dio.post(
-        '/auth/login',
+        '/auth/passwordless',
         data: {
-          'username': email,
-          'password': password,
+          'email': email,
         },
-        options: Options(
-          contentType: Headers.formUrlEncodedContentType,
-        ),
       );
 
       final token = response.data['access_token'];
@@ -74,12 +68,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: 'Email Address', border: OutlineInputBorder()),
                 keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
-                obscureText: true,
               ),
               const SizedBox(height: 24),
               ElevatedButton(

@@ -63,7 +63,10 @@ def assign_faculty_to_section(
 ):
     from app.models.profiles import FacultySectionAssignment
     # Verify section belongs to tenant
-    section = db.query(Section).filter(Section.id == section_id, Section.tenant_id == current_user.tenant_id).first()
+    query = db.query(Section).filter(Section.id == section_id)
+    if current_user.role != UserRole.SUPERADMIN.value:
+        query = query.filter(Section.tenant_id == current_user.tenant_id)
+    section = query.first()
     if not section:
         raise HTTPException(status_code=404, detail="Section not found")
         
@@ -88,7 +91,10 @@ def revoke_faculty_from_section(
 ):
     from app.models.profiles import FacultySectionAssignment
     # Verify section belongs to tenant
-    section = db.query(Section).filter(Section.id == section_id, Section.tenant_id == current_user.tenant_id).first()
+    query = db.query(Section).filter(Section.id == section_id)
+    if current_user.role != UserRole.SUPERADMIN.value:
+        query = query.filter(Section.tenant_id == current_user.tenant_id)
+    section = query.first()
     if not section:
         raise HTTPException(status_code=404, detail="Section not found")
         

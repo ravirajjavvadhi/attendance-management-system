@@ -10,7 +10,6 @@ class LoginScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final emailController = TextEditingController();
-    final passwordController = TextEditingController();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Parent Login')),
@@ -43,40 +42,25 @@ class LoginScreen extends ConsumerWidget {
               ),
               keyboardType: TextInputType.emailAddress,
             ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                prefixIcon: Icon(Icons.lock),
-                border: OutlineInputBorder(),
-              ),
-              obscureText: true,
-            ),
             const SizedBox(height: 24),
             FilledButton(
               onPressed: () async {
                 final email = emailController.text.trim();
-                final password = passwordController.text.trim();
-                if (email.isEmpty || password.isEmpty) {
+                if (email.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter email and password')),
+                    const SnackBar(content: Text('Please enter your email')),
                   );
                   return;
                 }
 
                 try {
                   final dio = ref.read(dioClientProvider).dio;
-                  // Direct OAuth2 form-encoded login via FastAPI backend
+                  // Passwordless direct login via FastAPI backend
                   final response = await dio.post(
-                    '/auth/login',
+                    '/auth/passwordless',
                     data: {
-                      'username': email,
-                      'password': password,
+                      'email': email,
                     },
-                    options: Options(
-                      contentType: Headers.formUrlEncodedContentType,
-                    ),
                   );
                   
                   final token = response.data['access_token'];
