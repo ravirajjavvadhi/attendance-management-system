@@ -287,68 +287,87 @@ def delete_institution(
         raise HTTPException(status_code=400, detail="Cannot delete system tenant")
         
     from sqlalchemy import text
-    
-    # Queries for child records referencing users or profiles
-    user_dependent_queries = [
+
+    # Complete FK-safe deletion order.
+    # Each query is executed independently — failures are silently skipped
+    # so missing/optional tables never block the cascade.
+    deletion_steps = [
+        # ── LEVEL 1: deepest leaf records (reference student/faculty/section) ──
+        # exam_results references exams and student_profiles
+        "DELETE FROM exam_results WHERE exam_id IN (SELECT id FROM exams WHERE tenant_id = :id)",
+        # assignment_submissions references assignments and student_profiles
+        "DELETE FROM assignment_submissions WHERE assignment_id IN (SELECT id FROM assignments WHERE tenant_id = :id)",
+        # attendance_records references student_profiles and sections
+        "DELETE FROM attendance_records WHERE tenant_id = :id",
+        "DELETE FROM attendance_sessions WHERE tenant_id = :id",
+        # sms_queue may reference students/users
+        "DELETE FROM sms_queue WHERE tenant_id = :id",
+        # notification_logs
+        "DELETE FROM notification_logs WHERE tenant_id = :id",
+        # campus_notices / timeline_events / calendar_days
+        "DELETE FROM campus_notices WHERE tenant_id = :id",
+        "DELETE FROM timeline_events WHERE tenant_id = :id",
+        "DELETE FROM calendar_days WHERE tenant_id = :id",
+        "DELETE FROM semester_terms WHERE tenant_id = :id",
+        # erp timetable references erp_periods and erp_subjects
+        "DELETE FROM erp_timetable WHERE tenant_id = :id",
+        "DELETE FROM erp_faculty_subject_allocations WHERE faculty_user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
+        "DELETE FROM erp_periods WHERE tenant_id = :id",
+        "DELETE FROM erp_subjects WHERE tenant_id = :id",
+        "DELETE FROM erp_semesters WHERE tenant_id = :id",
+        "DELETE FROM erp_branches WHERE tenant_id = :id",
+
+        # ── LEVEL 2: junction/link tables ──
+        # parent_student_links references parent_profiles and student_profiles
         "DELETE FROM parent_student_links WHERE student_id IN (SELECT id FROM student_profiles WHERE section_id IN (SELECT id FROM sections WHERE tenant_id = :id))",
         "DELETE FROM parent_student_links WHERE parent_id IN (SELECT id FROM parent_profiles WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id))",
+        # faculty_section_assignments references faculty users and sections
+        "DELETE FROM faculty_section_assignments WHERE section_id IN (SELECT id FROM sections WHERE tenant_id = :id)",
+        "DELETE FROM faculty_section_assignments WHERE faculty_user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
+
+        # ── LEVEL 3: profile tables ──
         "DELETE FROM parent_profiles WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
+        "DELETE FROM faculty_profiles WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
+        # student_profiles linked by user OR by section
         "DELETE FROM student_profiles WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
         "DELETE FROM student_profiles WHERE section_id IN (SELECT id FROM sections WHERE tenant_id = :id)",
-        "DELETE FROM faculty_section_assignments WHERE faculty_user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
-        "DELETE FROM faculty_profiles WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
+
+        # ── LEVEL 4: device tokens ──
         "DELETE FROM devices WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
-        "DELETE FROM erp_faculty_subject_allocations WHERE faculty_user_id IN (SELECT id FROM users WHERE tenant_id = :id)"
+
+        # ── LEVEL 5: academic structure ──
+        "DELETE FROM exams WHERE tenant_id = :id",
+        "DELETE FROM assignments WHERE tenant_id = :id",
+        "DELETE FROM sections WHERE tenant_id = :id",
+        "DELETE FROM classes WHERE tenant_id = :id",
+        "DELETE FROM courses WHERE tenant_id = :id",
+        "DELETE FROM departments WHERE tenant_id = :id",
+        "DELETE FROM academic_years WHERE tenant_id = :id",
+
+        # ── LEVEL 6: institution config ──
+        "DELETE FROM institution_modules WHERE tenant_id = :id",
+        "DELETE FROM sms_templates WHERE tenant_id = :id",
+
+        # ── LEVEL 7: users (must come after all profile/device deletions) ──
+        "DELETE FROM users WHERE tenant_id = :id",
     ]
-    
-    # Tables that have tenant_id directly
-    tenant_direct_tables = [
-        "exam_results", "exams", "assignment_submissions", "assignments",
-        "attendance_records", "attendance_sessions", "erp_timetable",
-        "erp_periods", "erp_subjects", "erp_semesters", "erp_branches",
-        "sections", "classes", "departments", "academic_years",
-        "sms_queue", "notification_logs", "campus_notices", "timeline_events",
-        "semester_terms", "calendar_days", "institution_modules", "users"
-    ]
-    
+
     try:
-        # STEP 1: Delete records that reference student_profiles or faculty profiles (must go first)
-        pre_profile_queries = [
-            # attendance_records references student_id in student_profiles
-            "DELETE FROM attendance_records WHERE tenant_id = :id",
-            "DELETE FROM attendance_sessions WHERE tenant_id = :id",
-            # faculty_section_assignments references faculty_user_id
-            "DELETE FROM faculty_section_assignments WHERE section_id IN (SELECT id FROM sections WHERE tenant_id = :id)",
-            "DELETE FROM faculty_section_assignments WHERE faculty_user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
-        ]
-        for query in pre_profile_queries:
+        for query in deletion_steps:
             try:
                 db.execute(text(query), {"id": institution_id})
+                db.flush()  # flush each step so FK checks pass sequentially
             except Exception:
-                pass  # Table may not exist, continue
-        
-        # STEP 2: Delete user-dependent profiles and links
-        for query in user_dependent_queries:
-            try:
-                db.execute(text(query), {"id": institution_id})
-            except Exception:
-                pass  # Skip tables that may not exist
-            
-        # STEP 3: Delete direct tenant-specific tables (skip ones already deleted above)
-        skip_tables = {"attendance_records", "attendance_sessions"}
-        for table in tenant_direct_tables:
-            if table in skip_tables:
-                continue
-            try:
-                db.execute(text(f"DELETE FROM {table} WHERE tenant_id = :id"), {"id": institution_id})
-            except Exception:
-                pass  # Skip tables that may not exist
-            
-        # STEP 4: Delete the institution itself
+                db.rollback()
+                # Re-open a clean transaction and continue — table may not exist
+                pass
+
+        # Finally delete the institution record itself
         db.delete(institution)
         db.commit()
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to delete institution: {str(e)}")
         
-    return {"message": "Institution and all associated tenant data deleted successfully"}
+    return {"message": "Institution and all associated data deleted successfully"}
+
