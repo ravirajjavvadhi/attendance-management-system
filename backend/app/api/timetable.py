@@ -119,7 +119,7 @@ def confirm_timetable(
         search = f"%{name.split()[-1]}%" # Search by last name
         faculty = db.query(User).filter(
             User.tenant_id == current_user.tenant_id,
-            User.role == UserRole.FACULTY,
+            User.role == UserRole.FACULTY.value,
             User.full_name.ilike(search)
         ).first()
         return faculty
