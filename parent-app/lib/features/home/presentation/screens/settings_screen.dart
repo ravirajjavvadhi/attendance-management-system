@@ -269,7 +269,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget _buildSettingTile(BuildContext context, IconData icon, String title, {String? subtitle, Widget? trailing}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: trailing != null ? 4 : 14),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: trailing != null ? 4 : 14),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
