@@ -14,21 +14,35 @@ router = APIRouter()
 
 @router.get("/stats/today")
 def get_today_stats(
+    tenant_id: int = None,
     db: Session = Depends(get_db),
     current_management: User = Depends(get_current_management_or_faculty)
 ):
     from sqlalchemy import func
-    today = date.today()
+    from zoneinfo import ZoneInfo
+    from datetime import datetime
+    today = datetime.now(ZoneInfo('Asia/Kolkata')).date()
+    
+    # SuperAdmin or Admin can specify tenant_id to view another tenant's overview
+    active_tenant_id = current_management.tenant_id
+    if current_management.role in ["SUPERADMIN", "ADMIN"]:
+        if tenant_id:
+            active_tenant_id = tenant_id
+        elif active_tenant_id == 1:
+            from app.models.tenant import Institution
+            first_tenant = db.query(Institution).filter(Institution.subdomain != "system").first()
+            if first_tenant:
+                active_tenant_id = first_tenant.id
     
     from app.models.academic import Section
     # Total students in tenant (joining Section instead of User because user_id can be NULL)
     total_students = db.query(func.count(StudentProfile.id)) \
         .join(Section, StudentProfile.section_id == Section.id) \
-        .filter(Section.tenant_id == current_management.tenant_id).scalar() or 0
+        .filter(Section.tenant_id == active_tenant_id).scalar() or 0
         
     # Attendance for today
     attendance_records = db.query(AttendanceRecord).filter(
-        AttendanceRecord.tenant_id == current_management.tenant_id,
+        AttendanceRecord.tenant_id == active_tenant_id,
         AttendanceRecord.date == today
     ).all()
     
@@ -48,7 +62,7 @@ def get_today_stats(
         func.sum(case((AttendanceRecord.is_present == True, 1), else_=0)).label("present")
     ).join(Section, StudentProfile.section_id == Section.id) \
      .join(AttendanceRecord, StudentProfile.id == AttendanceRecord.student_id) \
-     .filter(Section.tenant_id == current_management.tenant_id) \
+     .filter(Section.tenant_id == active_tenant_id) \
      .group_by(StudentProfile.id, StudentProfile.name, Section.name).all()
 
     alerts = []
@@ -62,13 +76,13 @@ def get_today_stats(
                     "rate": f"{rate:.1f}%",
                     "status": "Critical" if rate < 50 else "Warning"
                 })
-                
+                 
     # Sort alerts so critical ones are first
     alerts.sort(key=lambda x: float(x["rate"].replace("%", "")))
     
     # Recent Notifications
     recent_logs = db.query(NotificationLog) \
-        .filter(NotificationLog.tenant_id == current_management.tenant_id) \
+        .filter(NotificationLog.tenant_id == active_tenant_id) \
         .order_by(NotificationLog.created_at.desc()) \
         .limit(5).all()
         
@@ -91,7 +105,7 @@ def get_today_stats(
     ).join(Section, AttendanceRecord.section_id == Section.id) \
      .outerjoin(Class, Section.class_id == Class.id) \
      .filter(
-        Section.tenant_id == current_management.tenant_id,
+        Section.tenant_id == active_tenant_id,
         AttendanceRecord.date == today,
         AttendanceRecord.is_present == False
     ).group_by(Class.name, Section.name).all()

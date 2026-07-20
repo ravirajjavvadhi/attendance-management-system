@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eduflow_core/eduflow_core.dart';
+import 'package:dio/dio.dart';
 
 class FacultyDashboardScreen extends ConsumerStatefulWidget {
   const FacultyDashboardScreen({super.key});
@@ -10,136 +11,241 @@ class FacultyDashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _FacultyDashboardScreenState extends ConsumerState<FacultyDashboardScreen> {
-  Map<String, dynamic>? activeClass;
+  List<dynamic> sections = [];
+  String? selectedSectionId;
+  int selectedPeriod = 1;
+  List<dynamic> students = [];
   bool isLoading = true;
+  bool isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchActiveClass();
+    _fetchInitialData();
   }
 
-  Future<void> _fetchActiveClass() async {
+  Future<void> _fetchInitialData() async {
     try {
       final dio = ref.read(dioClientProvider).dio;
-      // Triggers SchedulingEngine & TimetableEngine natively
-      final response = await dio.get('/faculty/timetable/active');
-      
+      final response = await dio.get('/academic/sections');
+      final List<dynamic> data = response.data;
       if (mounted) {
         setState(() {
-          activeClass = response.data['data']; // Returns Subject, Section, Period
+          sections = data;
+          if (data.isNotEmpty) {
+            selectedSectionId = data[0]['id'].toString();
+          }
+        });
+        if (selectedSectionId != null) {
+          await _fetchStudents();
+        } else {
+          setState(() => isLoading = false);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load sections: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _fetchStudents() async {
+    if (selectedSectionId == null) return;
+    setState(() => isLoading = true);
+    try {
+      final dio = ref.read(dioClientProvider).dio;
+      final response = await dio.get('/academic/students?section_id=$selectedSectionId');
+      final List<dynamic> data = response.data;
+      if (mounted) {
+        setState(() {
+          students = data.map((s) {
+            return {
+              'id': s['id'],
+              'roll_number': s['roll_number'],
+              'name': s['name'] == 'Not Provided' ? 'Student' : s['name'],
+              'present': true, // Default to present
+            };
+          }).toList();
           isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load students: $e')),
+        );
+      }
     }
   }
 
-  Future<void> _startAttendance() async {
-    if (activeClass == null) return;
-    
+  Future<void> _submitAttendance() async {
+    if (selectedSectionId == null || students.isEmpty) return;
+    setState(() => isSubmitting = true);
     try {
       final dio = ref.read(dioClientProvider).dio;
-      // Triggers AttendanceEngine.start_attendance_session
-      final response = await dio.post('/faculty/attendance/start');
+      final todayStr = DateTime.now().toIso8601String().split('T')[0];
       
-      final sessionId = response.data['session_id'];
-      
+      final records = students.map((s) => {
+        'student_id': s['id'],
+        'is_present': s['present'],
+      }).toList();
+
+      await dio.post('/attendance/submit', data: {
+        'section_id': int.parse(selectedSectionId!),
+        'date': todayStr,
+        'records': records,
+      });
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Session Started: $sessionId. Opening Scanner...'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('Attendance submitted successfully!'), backgroundColor: Colors.green),
         );
-        // context.pushNamed('attendance_scanner', pathParameters: {'sessionId': sessionId});
       }
     } catch (e) {
-       if (mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to start session: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Failed to submit attendance: $e'), backgroundColor: Colors.red),
         );
       }
+    } finally {
+      if (mounted) setState(() => isSubmitting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('EduFlow Command Center'),
+        title: const Text('Faculty Command Center'),
         actions: [
-          IconButton(icon: const Icon(Icons.calendar_month), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchInitialData,
+          ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Good Morning, Dr. Kumar', style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 24),
-            
-            // The flagship one-tap UI
-            if (activeClass != null) ...[
-              Card(
-                color: Colors.blue.shade50,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    children: [
-                      const Text('CURRENT LIVE CLASS', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-                      const SizedBox(height: 16),
-                      Text(activeClass!['subject_name'], style: Theme.of(context).textTheme.headlineMedium),
-                      const SizedBox(height: 8),
-                      Text('${activeClass!['branch']} - Section ${activeClass!['section']} (${activeClass!['period_name']})', style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.qr_code_scanner),
-                        label: const Text('START ATTENDANCE NOW'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        ),
-                        onPressed: _startAttendance,
-                      ),
-                    ],
+            // Dropdowns for Section and Period selection
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: selectedSectionId,
+                    decoration: const InputDecoration(labelText: 'Select Section', border: OutlineInputBorder()),
+                    items: sections.map<DropdownMenuItem<String>>((s) {
+                      return DropdownMenuItem<String>(
+                        value: s['id'].toString(),
+                        child: Text(s['name'] ?? 'Section'),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        selectedSectionId = val;
+                      });
+                      _fetchStudents();
+                    },
                   ),
                 ),
-              ),
-            ] else ...[
-              const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: Center(child: Text('No active class right now. Enjoy your break!')),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    value: selectedPeriod,
+                    decoration: const InputDecoration(labelText: 'Select Period', border: OutlineInputBorder()),
+                    items: List.generate(8, (i) => i + 1).map<DropdownMenuItem<int>>((p) {
+                      return DropdownMenuItem<int>(
+                        value: p,
+                        child: Text('Period $p'),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          selectedPeriod = val;
+                        });
+                      }
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            const SizedBox(height: 20),
             
-            const SizedBox(height: 32),
-            Text('Today\'s Schedule', style: Theme.of(context).textTheme.titleLarge),
+            // Student list
+            Expanded(
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : students.isEmpty
+                      ? const Center(child: Text('No students found in this section.'))
+                      : ListView.builder(
+                          itemCount: students.length,
+                          itemBuilder: (context, index) {
+                            final student = students[index];
+                            final isPresent = student['present'] as bool;
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: isPresent ? Colors.green.shade100 : Colors.red.shade100,
+                                  child: Text(
+                                    student['name']?.substring(0, 1) ?? 'S',
+                                    style: TextStyle(color: isPresent ? Colors.green.shade800 : Colors.red.shade800),
+                                  ),
+                                ),
+                                title: Text(student['name'] ?? 'Student'),
+                                subtitle: Text('Roll: ${student['roll_number'] ?? '-'}'),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ChoiceChip(
+                                      label: const Text('P'),
+                                      selected: isPresent,
+                                      selectedColor: Colors.green.shade200,
+                                      onSelected: (val) {
+                                        setState(() {
+                                          students[index]['present'] = true;
+                                        });
+                                      },
+                                    ),
+                                    const SizedBox(width: 8),
+                                    ChoiceChip(
+                                      label: const Text('A'),
+                                      selected: !isPresent,
+                                      selectedColor: Colors.red.shade200,
+                                      onSelected: (val) {
+                                        setState(() {
+                                          students[index]['present'] = false;
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+            ),
+            
             const SizedBox(height: 16),
-            // Mock Timeline
-            ListTile(leading: const Icon(Icons.schedule), title: const Text('10:30 AM - Computer Networks'), subtitle: const Text('CSE-A'), trailing: const Icon(Icons.check_circle, color: Colors.green)),
-            ListTile(leading: const Icon(Icons.schedule, color: Colors.blue), title: const Text('11:20 AM - Database Systems'), subtitle: const Text('IT-B'), trailing: const Text('LIVE', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))),
-            ListTile(leading: const Icon(Icons.schedule, color: Colors.grey), title: const Text('2:00 PM - OS Lab'), subtitle: const Text('CSE-A')),
-            
+            ElevatedButton(
+              onPressed: isSubmitting || students.isEmpty ? null : _submitAttendance,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: isSubmitting
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('SUBMIT ATTENDANCE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
           ],
         ),
-      ),
-      bottomNavigationBar: ModernBottomNav(
-        selectedIndex: 0,
-        onItemSelected: (index) {},
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.assignment), label: 'Assignments'),
-          NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
-        ],
       ),
     );
   }

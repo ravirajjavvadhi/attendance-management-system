@@ -272,3 +272,59 @@ def get_detailed_institution_reports(
         ))
         
     return result
+
+@router.delete("/{institution_id}", status_code=status.HTTP_200_OK)
+def delete_institution(
+    institution_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_superadmin)
+):
+    institution = db.query(Institution).filter(Institution.id == institution_id).first()
+    if not institution:
+        raise HTTPException(status_code=404, detail="Institution not found")
+        
+    if institution.subdomain == "system":
+        raise HTTPException(status_code=400, detail="Cannot delete system tenant")
+        
+    from sqlalchemy import text
+    
+    # Queries for child records referencing users or profiles
+    user_dependent_queries = [
+        "DELETE FROM parent_student_links WHERE student_id IN (SELECT id FROM student_profiles WHERE section_id IN (SELECT id FROM sections WHERE tenant_id = :id))",
+        "DELETE FROM parent_student_links WHERE parent_id IN (SELECT id FROM parent_profiles WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id))",
+        "DELETE FROM parent_profiles WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
+        "DELETE FROM student_profiles WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
+        "DELETE FROM student_profiles WHERE section_id IN (SELECT id FROM sections WHERE tenant_id = :id)",
+        "DELETE FROM faculty_section_assignments WHERE faculty_user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
+        "DELETE FROM faculty_profiles WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
+        "DELETE FROM devices WHERE user_id IN (SELECT id FROM users WHERE tenant_id = :id)",
+        "DELETE FROM erp_faculty_subject_allocations WHERE faculty_user_id IN (SELECT id FROM users WHERE tenant_id = :id)"
+    ]
+    
+    # Tables that have tenant_id directly
+    tenant_direct_tables = [
+        "exam_results", "exams", "assignment_submissions", "assignments",
+        "attendance_records", "attendance_sessions", "erp_timetable",
+        "erp_periods", "erp_subjects", "erp_semesters", "erp_branches",
+        "sections", "classes", "departments", "academic_years",
+        "sms_queue", "notification_logs", "campus_notices", "timeline_events",
+        "semester_terms", "calendar_days", "institution_modules", "users"
+    ]
+    
+    try:
+        # Delete user-dependent profiles and links first
+        for query in user_dependent_queries:
+            db.execute(text(query), {"id": institution_id})
+            
+        # Delete direct tenant-specific tables
+        for table in tenant_direct_tables:
+            db.execute(text(f"DELETE FROM {table} WHERE tenant_id = :id"), {"id": institution_id})
+            
+        # Delete the institution itself
+        db.delete(institution)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete institution: {str(e)}")
+        
+    return {"message": "Institution and all associated tenant data deleted successfully"}

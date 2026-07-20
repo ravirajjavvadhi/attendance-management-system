@@ -2,11 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router/app_router.dart';
 import 'package:eduflow_core/eduflow_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Core Services
+  await HiveService.init();
+  
+  final prefs = await SharedPreferences.getInstance();
+  final authService = AuthService(prefs);
+
   runApp(
-    const ProviderScope(
-      child: EduFlowParentApp(),
+    ProviderScope(
+      overrides: [
+        authServiceProvider.overrideWithValue(authService),
+      ],
+      child: const EduFlowParentApp(),
     ),
   );
 }

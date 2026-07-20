@@ -90,6 +90,30 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const handleDelete = async (id: number, name: string) => {
+    if (!confirm(`Are you sure you want to delete ${name}? This will permanently delete all associated data (users, students, timetables, classes).`)) return;
+    if (!token) return;
+    
+    try {
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const res = await fetch(`${baseUrl}/api/v1/institutions/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        alert("Institution deleted successfully.");
+        fetchInstitutions();
+      } else {
+        const data = await res.json();
+        alert(`Error: ${data.detail || "Failed to delete institution"}`);
+      }
+    } catch (error) {
+      console.error("Delete error", error);
+      alert("Failed to connect to backend server.");
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl">
       <div>
@@ -221,18 +245,19 @@ export default function SuperAdminDashboard() {
               <th className="px-6 py-3 font-medium text-muted-foreground">Institution</th>
               <th className="px-6 py-3 font-medium text-muted-foreground">Management Email</th>
               <th className="px-6 py-3 font-medium text-muted-foreground">Status</th>
+              <th className="px-6 py-3 font-medium text-muted-foreground text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {isLoading ? (
               <tr>
-                <td colSpan={3} className="px-6 py-8 text-center text-muted-foreground">
+                <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
                   Loading institutions...
                 </td>
               </tr>
             ) : institutions.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-6 py-8 text-center text-muted-foreground">
+                <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
                   No institutions found. Provision one above.
                 </td>
               </tr>
@@ -245,6 +270,16 @@ export default function SuperAdminDashboard() {
                     <span className="bg-green-500/10 text-green-500 px-2 py-1 rounded text-xs font-medium">
                       {inst.status}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    {inst.management_email !== "No Admin" && inst.id !== 1 && (
+                      <button
+                        onClick={() => handleDelete(inst.id, inst.name)}
+                        className="text-red-500 hover:text-red-700 font-medium text-xs bg-red-500/10 hover:bg-red-500/20 px-2.5 py-1 rounded transition-colors"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))
