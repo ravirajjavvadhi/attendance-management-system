@@ -145,12 +145,19 @@ def get_parent_dashboard(
                     period = db.query(Period).filter(Period.id == tt.period_id).first()
                     faculty = db.query(UserModel).filter(UserModel.id == tt.faculty_user_id).first()
                     
+                    # Get faculty name from FacultyProfile if available
+                    faculty_name = "Unknown"
+                    if faculty:
+                        from app.models.profiles import FacultyProfile
+                        fac_prof = db.query(FacultyProfile).filter(FacultyProfile.user_id == faculty.id).first()
+                        faculty_name = fac_prof.name if (fac_prof and fac_prof.name) else (faculty.email or "Unknown")
+                    
                     if subject and period:
                         today_timetable.append({
                             "period": period.period_number,
                             "time": f"{period.start_time.strftime('%H:%M')} - {period.end_time.strftime('%H:%M')}",
                             "subject": subject.name,
-                            "faculty": faculty.full_name if faculty else "Unknown",
+                            "faculty": faculty_name,
                             "status": "UPCOMING"
                         })
     
