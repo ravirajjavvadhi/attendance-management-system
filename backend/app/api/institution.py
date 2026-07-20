@@ -353,17 +353,20 @@ def delete_institution(
     ]
 
     try:
-        for query in deletion_steps:
+        for i, query in enumerate(deletion_steps):
+            sp = f"sp_del_{i}"
             try:
+                db.execute(text(f"SAVEPOINT {sp}"))
                 db.execute(text(query), {"id": institution_id})
-                db.flush()  # flush each step so FK checks pass sequentially
+                db.execute(text(f"RELEASE SAVEPOINT {sp}"))
             except Exception:
-                db.rollback()
-                # Re-open a clean transaction and continue — table may not exist
-                pass
+                # Roll back only this one step — previous deletions are preserved
+                db.execute(text(f"ROLLBACK TO SAVEPOINT {sp}"))
 
-        # Finally delete the institution record itself
-        db.delete(institution)
+        # Re-fetch institution (ORM object may be stale after raw SQL)
+        institution = db.query(Institution).filter(Institution.id == institution_id).first()
+        if institution:
+            db.delete(institution)
         db.commit()
     except Exception as e:
         db.rollback()
