@@ -209,7 +209,7 @@ def get_parent_dashboard(
 @router.get("/profile")
 def get_parent_profile(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_user)
 ):
     from app.models.profiles import ParentProfile, StudentProfile, ParentStudentLink
     from app.models.academic import Section, Class, Department
