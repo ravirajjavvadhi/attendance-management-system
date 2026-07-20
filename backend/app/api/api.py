@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api import auth, user, institution, attendance, notification, academic, device, sms
+from app.api import auth, user, institution, attendance, notification, academic, device, sms, timetable
 
 api_router = APIRouter()
 
@@ -9,6 +9,7 @@ api_router.include_router(institution.router, prefix="/institutions", tags=["ins
 api_router.include_router(attendance.router, prefix="/attendance", tags=["attendance"])
 api_router.include_router(notification.router, prefix="/legacy-notifications", tags=["legacy-notifications"])
 api_router.include_router(academic.router, prefix="/academic", tags=["academic"])
+api_router.include_router(timetable.router, prefix="/academic/timetable", tags=["timetable"])
 api_router.include_router(device.router, prefix="/device", tags=["device"])
 api_router.include_router(device.router, prefix="/devices", tags=["device"])
 api_router.include_router(sms.router, prefix="/legacy-sms", tags=["legacy-sms"])

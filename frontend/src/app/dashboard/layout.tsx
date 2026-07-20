@@ -21,6 +21,7 @@ export default function DashboardLayout({
     { name: "Attendance", href: "/dashboard/faculty", icon: CalendarCheck, roles: ["FACULTY"] },
     { name: "Staff & Faculty", href: "/dashboard/admin/staff", icon: Users, roles: ["MANAGEMENT"] },
     { name: "Students", href: "/dashboard/student", icon: GraduationCap, roles: ["MANAGEMENT", "FACULTY", "STUDENT"] },
+    { name: "Timetable Setup", href: "/dashboard/timetable", icon: CalendarCheck, roles: ["MANAGEMENT"] },
     { name: "SMS Gateway", href: "/dashboard/admin/sms-gateway", icon: Smartphone, roles: ["MANAGEMENT"] },
     { name: "SMS Logs", href: "/dashboard/admin/sms-logs", icon: FileText, roles: ["MANAGEMENT"] },
     { name: "Reports", href: "/dashboard/admin/reports", icon: FileText, roles: ["MANAGEMENT", "SUPERADMIN"] },

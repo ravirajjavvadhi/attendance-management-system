@@ -44,3 +44,4 @@ class Section(Base):
     tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
     class_id = Column(Integer, ForeignKey("classes.id"))
     name = Column(String, nullable=False) # e.g. "A", "B"
+    admission_year = Column(Integer, nullable=True) # Used for smart year calculation (e.g., 2022)

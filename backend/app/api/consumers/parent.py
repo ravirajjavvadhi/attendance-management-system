@@ -106,6 +106,7 @@ def get_parent_dashboard(
     attendance_pct = 100.0
     total_classes = 0
     attended = 0
+    today_timetable = []
     
     if parent:
         link = db.query(ParentStudentLink).filter(ParentStudentLink.parent_id == parent.id).first()
@@ -127,6 +128,31 @@ def get_parent_dashboard(
                     total_classes = len(records)
                     attended = sum(1 for r in records if r.is_present)
                     attendance_pct = round((attended / total_classes) * 100, 1)
+                    
+                # Fetch Real Timetable
+                from datetime import datetime
+                from app.models.erp_academic import Timetable, Subject, Period
+                from app.models.user import User as UserModel
+                
+                day_name = datetime.now().strftime("%A").upper()
+                tt_entries = db.query(Timetable).filter(Timetable.section_id == student.section_id, Timetable.day_of_week == day_name).all()
+                
+                # Sort by period start time
+                tt_entries = sorted(tt_entries, key=lambda e: db.query(Period).filter(Period.id == e.period_id).first().start_time if db.query(Period).filter(Period.id == e.period_id).first() else 0)
+                
+                for tt in tt_entries:
+                    subject = db.query(Subject).filter(Subject.id == tt.subject_id).first()
+                    period = db.query(Period).filter(Period.id == tt.period_id).first()
+                    faculty = db.query(UserModel).filter(UserModel.id == tt.faculty_user_id).first()
+                    
+                    if subject and period:
+                        today_timetable.append({
+                            "period": period.period_number,
+                            "time": f"{period.start_time.strftime('%H:%M')} - {period.end_time.strftime('%H:%M')}",
+                            "subject": subject.name,
+                            "faculty": faculty.full_name if faculty else "Unknown",
+                            "status": "UPCOMING"
+                        })
     
     return {
         "status": "success",
@@ -145,9 +171,8 @@ def get_parent_dashboard(
             "notifications": [
                 {"title": "Welcome", "message": f"Welcome to the portal. Monitoring {student_name}.", "date": date.today().isoformat()}
             ],
-            "todayTimetable": [
-                {"period": 1, "subject": "Physics", "status": "PRESENT"},
-                {"period": 2, "subject": "Math", "status": "UPCOMING"}
+            "todayTimetable": today_timetable if today_timetable else [
+                {"period": 1, "subject": "No classes scheduled today", "status": "FREE"}
             ],
             "assignments": [
                 {"subject": "Math", "title": "Calculus Assignment 1", "due_date": "2026-07-20"}

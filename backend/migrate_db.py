@@ -38,6 +38,12 @@ def apply_migrations():
         except Exception as e:
             print("timetable_id already exists or error:", e)
 
+        try:
+            conn.execute(text("ALTER TABLE sections ADD COLUMN admission_year INTEGER;"))
+            print("Added admission_year to sections")
+        except Exception as e:
+            print("admission_year already exists or error:", e)
+
         conn.commit()
 
     # Create new tables (like faculty_section_assignments, erp models)
