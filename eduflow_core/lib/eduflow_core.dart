@@ -5,3 +5,5 @@ export 'core/auth/auth_service.dart';
 export 'core/network/dio_client.dart';
 export 'core/storage/hive_service.dart';
 export 'core/notification/notification_service.dart';
+export 'core/widgets/analytics_card.dart';
+export 'core/widgets/modern_bottom_nav.dart';

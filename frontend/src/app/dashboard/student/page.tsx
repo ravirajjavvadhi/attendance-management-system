@@ -9,6 +9,7 @@ interface Student {
   roll_number: string;
   name: string;
   parent_mobile: string;
+  parent_email?: string;
   section_name: string;
   section_id: number;
   status: string;
@@ -42,6 +43,7 @@ export default function StudentManagement() {
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [editName, setEditName] = useState("");
   const [editMobile, setEditMobile] = useState("");
+  const [editEmail, setEditEmail] = useState("");
 
   const fetchData = async () => {
     if (!token) return;
@@ -173,7 +175,8 @@ export default function StudentManagement() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ 
           name: editName,
-          parent_mobile: editMobile
+          parent_mobile: editMobile,
+          parent_email: editEmail
         })
       });
       
@@ -190,6 +193,7 @@ export default function StudentManagement() {
     setEditingStudent(student);
     setEditName(student.name === "Not Provided" ? "" : student.name);
     setEditMobile(student.parent_mobile || "");
+    setEditEmail(student.parent_email || "");
   };
 
   const availableSections = sections.filter(s => s.class_id.toString() === selectedClassId);
@@ -386,6 +390,16 @@ export default function StudentManagement() {
                   placeholder="+1234567890"
                 />
               </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Parent / Guardian Email (For Login)</label>
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full bg-background border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="parent@example.com"
+                />
+              </div>
               <div className="pt-4 flex justify-end gap-2">
                 <button type="button" onClick={() => setEditingStudent(null)} className="px-4 py-2 text-sm font-medium border rounded-lg hover:bg-secondary/50">Cancel</button>
                 <button type="submit" disabled={isSubmitting} className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90">Save Changes</button>
@@ -417,17 +431,18 @@ export default function StudentManagement() {
                 <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Student Name</th>
                 <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Section</th>
                 <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Parent Mobile</th>
+                <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Parent Email</th>
                 <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">Loading students...</td>
+                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">Loading students...</td>
                 </tr>
               ) : students.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">No students onboarded yet.</td>
+                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">No students onboarded yet.</td>
                 </tr>
               ) : students.filter(s => s.name.toLowerCase().includes(search.toLowerCase()) || s.roll_number.includes(search)).map((student) => (
                 <tr key={student.id} className="hover:bg-secondary/30 transition-colors">
@@ -447,6 +462,7 @@ export default function StudentManagement() {
                   </td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">{student.section_name}</td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">{student.parent_mobile || "-"}</td>
+                  <td className="px-6 py-4 text-sm text-muted-foreground">{student.parent_email || "-"}</td>
                   <td className="px-6 py-4 text-right flex justify-end gap-2">
                     <button onClick={() => openEditModal(student)} className="text-blue-500 hover:text-blue-600 transition-colors p-1.5 rounded hover:bg-blue-500/10">
                       <Edit2 className="w-4 h-4" />

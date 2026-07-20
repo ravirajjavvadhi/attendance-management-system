@@ -8,10 +8,11 @@ class LoginScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mobileController = TextEditingController();
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: AppBar(title: const Text('Parent Login')),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -33,40 +34,66 @@ class LoginScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 48),
             TextFormField(
-              controller: mobileController,
+              controller: emailController,
               decoration: const InputDecoration(
-                labelText: 'Mobile Number',
-                prefixIcon: Icon(Icons.phone),
+                labelText: 'Email Address',
+                prefixIcon: Icon(Icons.email),
                 border: OutlineInputBorder(),
               ),
-              keyboardType: TextInputType.phone,
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: passwordController,
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                prefixIcon: Icon(Icons.lock),
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
             ),
             const SizedBox(height: 24),
             FilledButton(
               onPressed: () async {
-                final mobile = mobileController.text;
-                if (mobile.isEmpty) return;
+                final email = emailController.text.trim();
+                final password = passwordController.text.trim();
+                if (email.isEmpty || password.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter email and password')),
+                  );
+                  return;
+                }
 
                 try {
                   final dio = ref.read(dioClientProvider).dio;
-                  // Trigger OTP verification via FastAPI backend
-                  await dio.post('/parent/auth/request-otp', data: {
-                    'mobile_number': mobile,
-                  });
+                  // Direct OAuth2 form-encoded login via FastAPI backend
+                  final response = await dio.post(
+                    '/auth/login',
+                    data: {
+                      'username': email,
+                      'password': password,
+                    },
+                    options: Options(
+                      contentType: Headers.formUrlEncodedContentType,
+                    ),
+                  );
+                  
+                  final token = response.data['access_token'];
+                  final authService = ref.read(authServiceProvider);
+                  await authService.saveToken(token);
                   
                   if (context.mounted) {
-                    // Navigate to OTP Screen, passing the mobile number
-                    context.pushNamed('otp', pathParameters: {'mobile': mobile});
+                    context.go('/home');
                   }
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to request OTP: $e')),
+                      SnackBar(content: Text('Login failed: $e')),
                     );
                   }
                 }
               },
-              child: const Text('Send OTP'),
+              child: const Text('Login'),
             ),
           ],
         ),

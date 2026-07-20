@@ -11,21 +11,37 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _mobileController = TextEditingController();
-  final _pinController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
 
   Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter email and password')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     
     try {
       final dio = ref.read(dioClientProvider).dio;
-      final response = await dio.post('/faculty/auth/login', data: {
-        'mobile': _mobileController.text,
-        'pin': _pinController.text,
-      });
+      // Direct OAuth2 form-encoded login via central FastAPI backend
+      final response = await dio.post(
+        '/auth/login',
+        data: {
+          'username': email,
+          'password': password,
+        },
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+        ),
+      );
 
-      final token = response.data['token'];
+      final token = response.data['access_token'];
       final authService = ref.read(authServiceProvider);
       await authService.saveToken(token);
 
@@ -54,16 +70,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const Text('Faculty Portal', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
               const SizedBox(height: 48),
               TextField(
-                controller: _mobileController,
-                decoration: const InputDecoration(labelText: 'Mobile Number', border: OutlineInputBorder()),
-                keyboardType: TextInputType.phone,
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Email Address', border: OutlineInputBorder()),
+                keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
               TextField(
-                controller: _pinController,
-                decoration: const InputDecoration(labelText: '6-Digit PIN', border: OutlineInputBorder()),
+                controller: _passwordController,
+                decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
                 obscureText: true,
-                keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 24),
               ElevatedButton(

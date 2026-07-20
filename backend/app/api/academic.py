@@ -165,6 +165,7 @@ def bulk_create_students(
 class StudentUpdate(BaseModel):
     name: str
     parent_mobile: str
+    parent_email: Optional[str] = None
 
 @router.put("/students/{student_id}", status_code=status.HTTP_200_OK)
 def update_student_details(
@@ -184,6 +185,56 @@ def update_student_details(
         
     student.name = request.name
     student.parent_mobile = request.parent_mobile
+    student.parent_email = request.parent_email
+    
+    # Auto-provision parent user and profile if parent_email is specified
+    if request.parent_email:
+        from app.models.user import User, UserRole
+        from app.models.profiles import ParentProfile, ParentStudentLink
+        from app.core.security import get_password_hash
+        
+        # Check if parent user already exists
+        parent_user = db.query(User).filter(User.email == request.parent_email).first()
+        if not parent_user:
+            parent_user = User(
+                email=request.parent_email,
+                mobile_number=request.parent_mobile,
+                hashed_password=get_password_hash("123456"),
+                role=UserRole.PARENT.value,
+                is_active=True,
+                tenant_id=current_user.tenant_id
+            )
+            db.add(parent_user)
+            db.commit()
+            db.refresh(parent_user)
+            
+        # Ensure ParentProfile exists
+        parent_profile = db.query(ParentProfile).filter(ParentProfile.user_id == parent_user.id).first()
+        if not parent_profile:
+            parent_profile = ParentProfile(
+                user_id=parent_user.id,
+                name=student.parent_name or "Parent",
+                email=request.parent_email
+            )
+            db.add(parent_profile)
+            db.commit()
+            db.refresh(parent_profile)
+            
+        # Ensure ParentStudentLink exists
+        link = db.query(ParentStudentLink).filter(
+            ParentStudentLink.parent_id == parent_profile.id,
+            ParentStudentLink.student_id == student.id
+        ).first()
+        if not link:
+            link = ParentStudentLink(
+                parent_id=parent_profile.id,
+                student_id=student.id,
+                relationship="PRIMARY",
+                is_primary=True
+            )
+            db.add(link)
+            db.commit()
+            
     db.commit()
     return {"message": "Student details updated successfully"}
 
@@ -235,6 +286,7 @@ def get_students(
             "roll_number": student.roll_number,
             "name": student.name or "Not Provided",
             "parent_mobile": student.parent_mobile,
+            "parent_email": student.parent_email,
             "section_name": section.name,
             "section_id": section.id,
             "status": "Active"

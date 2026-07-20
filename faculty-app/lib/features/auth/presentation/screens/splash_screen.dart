@@ -23,7 +23,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     final authService = ref.read(authServiceProvider);
     
-    if (authService.hasToken()) {
+    if (authService.getToken() != null) {
       context.goNamed('dashboard');
     } else {
       context.goNamed('login');

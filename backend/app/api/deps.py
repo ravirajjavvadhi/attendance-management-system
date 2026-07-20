@@ -44,14 +44,14 @@ def get_current_superadmin(current_user: User = Depends(get_current_active_user)
     return current_user
 
 def get_current_management(current_user: User = Depends(get_current_active_user)) -> User:
-    if current_user.role != UserRole.MANAGEMENT.value:
+    if current_user.role not in [UserRole.SUPERADMIN.value, UserRole.MANAGEMENT.value, UserRole.ADMIN.value]:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Only Management can perform this action"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Only Management or Admin can perform this action"
         )
     return current_user
 
 def get_current_admin(current_user: User = Depends(get_current_active_user)) -> User:
-    if current_user.role not in [UserRole.MANAGEMENT.value, UserRole.ADMIN.value]:
+    if current_user.role not in [UserRole.SUPERADMIN.value, UserRole.MANAGEMENT.value, UserRole.ADMIN.value]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Only Management or Admin can perform this action"
         )
@@ -65,8 +65,8 @@ def get_current_faculty(current_user: User = Depends(get_current_active_user)) -
     return current_user
 
 def get_current_management_or_faculty(current_user: User = Depends(get_current_active_user)) -> User:
-    if current_user.role not in [UserRole.MANAGEMENT.value, UserRole.FACULTY.value]:
+    if current_user.role not in [UserRole.SUPERADMIN.value, UserRole.MANAGEMENT.value, UserRole.ADMIN.value, UserRole.FACULTY.value]:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Only Management or Faculty can perform this action"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Only Management, Admin, or Faculty can perform this action"
         )
     return current_user

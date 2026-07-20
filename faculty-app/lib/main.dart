@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eduflow_core/eduflow_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/router/app_router.dart';
+
+final themeModeProvider = Provider<ThemeMode>((ref) => ThemeMode.system);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize Core Services
-  final hiveService = HiveService();
-  await hiveService.init();
+  await HiveService.init();
   
-  final authService = AuthService();
-  await authService.init();
+  final prefs = await SharedPreferences.getInstance();
+  final authService = AuthService(prefs);
 
   runApp(
     ProviderScope(
       overrides: [
-        hiveServiceProvider.overrideWithValue(hiveService),
         authServiceProvider.overrideWithValue(authService),
       ],
       child: const FacultyApp(),
@@ -34,8 +35,8 @@ class FacultyApp extends ConsumerWidget {
 
     return MaterialApp.router(
       title: 'EduFlow Faculty',
-      theme: EduFlowTheme.lightTheme,
-      darkTheme: EduFlowTheme.darkTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
       routerConfig: router,
     );
