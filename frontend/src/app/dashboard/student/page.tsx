@@ -36,6 +36,7 @@ export default function StudentManagement() {
   const [newDeptName, setNewDeptName] = useState("");
   const [newDeptCode, setNewDeptCode] = useState("");
   const [newClassName, setNewClassName] = useState("");
+  const [newClassDeptId, setNewClassDeptId] = useState("");
   const [newSectionName, setNewSectionName] = useState("");
   const [setupClassId, setSetupClassId] = useState("");
 
@@ -109,10 +110,11 @@ export default function StudentManagement() {
       const res = await fetch(`${baseUrl}/api/v1/academic/classes`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: newClassName })
+        body: JSON.stringify({ name: newClassName, department_id: newClassDeptId ? parseInt(newClassDeptId) : null })
       });
       if (res.ok) {
         setNewClassName("");
+        setNewClassDeptId("");
         fetchData();
       }
     } finally {
@@ -299,19 +301,34 @@ export default function StudentManagement() {
             {/* Step 2: Class/Year */}
             <div className="space-y-4 border-r pr-4">
               <h4 className="font-semibold text-sm text-blue-500">2. Class / Year (e.g. "1st Year", "B.Tech")</h4>
-              <form onSubmit={handleCreateClass} className="flex gap-2">
-                <input
-                  type="text"
+              <form onSubmit={handleCreateClass} className="flex flex-col gap-2">
+                <select 
                   required
-                  value={newClassName}
-                  onChange={(e) => setNewClassName(e.target.value)}
-                  placeholder="Class Name"
-                  className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-                <button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium">Add</button>
+                  value={newClassDeptId}
+                  onChange={(e) => setNewClassDeptId(e.target.value)}
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                >
+                  <option value="">Select Department...</option>
+                  {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={newClassName}
+                    onChange={(e) => setNewClassName(e.target.value)}
+                    placeholder="Class Name"
+                    className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                  <button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium">Add</button>
+                </div>
               </form>
               <div className="flex flex-wrap gap-2 pt-2">
-                {classes.map(c => <span key={c.id} className="bg-blue-500/10 text-blue-600 border border-blue-500/20 px-3 py-1 rounded-full text-xs font-medium">{c.name}</span>)}
+                {classes.map(c => {
+                  const dept = departments.find(d => d.id === c.department_id);
+                  const deptName = dept ? ` (${dept.code || dept.name})` : "";
+                  return <span key={c.id} className="bg-blue-500/10 text-blue-600 border border-blue-500/20 px-3 py-1 rounded-full text-xs font-medium">{c.name}{deptName}</span>;
+                })}
               </div>
             </div>
             
@@ -326,7 +343,11 @@ export default function StudentManagement() {
                   className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50"
                 >
                   <option value="">Select Class...</option>
-                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {classes.map(c => {
+                    const dept = departments.find(d => d.id === c.department_id);
+                    const deptName = dept ? ` - ${dept.name}` : "";
+                    return <option key={c.id} value={c.id}>{c.name}{deptName}</option>;
+                  })}
                 </select>
                 <div className="flex gap-2">
                   <input

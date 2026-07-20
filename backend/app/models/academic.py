@@ -35,6 +35,7 @@ class Class(Base):
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
     course_id = Column(Integer, ForeignKey("courses.id"))
+    department_id = Column(Integer, ForeignKey("departments.id"))
     name = Column(String, nullable=False) # e.g. "1st Year", "Class 10"
 
 class Section(Base):

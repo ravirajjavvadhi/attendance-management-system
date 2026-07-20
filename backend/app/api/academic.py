@@ -61,7 +61,7 @@ def create_class(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
-    new_class = Class(name=request.name, tenant_id=current_user.tenant_id)
+    new_class = Class(name=request.name, department_id=request.department_id, tenant_id=current_user.tenant_id)
     db.add(new_class)
     db.commit()
     db.refresh(new_class)
