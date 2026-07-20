@@ -161,6 +161,39 @@ def get_parent_dashboard(
                             "status": "UPCOMING"
                         })
     
+    # Calculate real today's attendance status
+    from app.models.attendance import AttendanceRecord
+    from datetime import date as date_cls
+    
+    today_records = db.query(AttendanceRecord).filter(
+        AttendanceRecord.student_id == student.id,
+        AttendanceRecord.date == date_cls.today()
+    ).all()
+    
+    today_status = "NOT_MARKED"
+    if today_records:
+        today_status = "ABSENT" if any(not r.is_present for r in today_records) else "PRESENT"
+
+    # Fetch Real Notifications
+    from app.models.notification import NotificationLog
+    db_notifs = db.query(NotificationLog).filter(
+        NotificationLog.tenant_id == current_user.tenant_id,
+        (NotificationLog.recipient == current_user.email) | (NotificationLog.recipient == current_user.mobile_number)
+    ).order_by(NotificationLog.created_at.desc()).limit(10).all()
+    
+    notifications_list = [
+        {
+            "id": n.id,
+            "title": "Attendance Alert" if "absent" in n.message.lower() else "System Notification",
+            "message": n.message,
+            "date": n.created_at.strftime("%Y-%m-%d %H:%M")
+        } for n in db_notifs
+    ]
+    if not notifications_list:
+        notifications_list = [
+            {"id": 0, "title": "Welcome", "message": f"Welcome to the portal. Monitoring {student_name}.", "date": date.today().isoformat()}
+        ]
+
     # Fetch Real Upcoming Events
     from app.models.academic import Event
     events = db.query(Event).filter(Event.tenant_id == current_user.tenant_id).order_by(Event.event_date.desc()).limit(3).all()
@@ -183,13 +216,11 @@ def get_parent_dashboard(
                 "semester": f"Section {section_name}"
             },
             "todayAttendance": {
-                "status": "PRESENT" if attended > 0 else "ABSENT",
+                "status": today_status,
                 "entry_time": "08:45 AM"
             },
             "attendancePercentage": attendance_pct,
-            "notifications": [
-                {"title": "Welcome", "message": f"Welcome to the portal. Monitoring {student_name}.", "date": date.today().isoformat()}
-            ],
+            "notifications": notifications_list,
             "todayTimetable": today_timetable if today_timetable else [
                 {"period": 1, "subject": "No classes scheduled today", "status": "FREE"}
             ],

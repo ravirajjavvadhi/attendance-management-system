@@ -191,7 +191,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
 
                   // 2. Live Status
                   if (liveClass != null)
-                    _buildLiveClassCard(context, (student['name'] ?? 'Student').toString(), liveClass)
+                    _buildLiveClassCard(context, (student['name'] ?? 'Student').toString(), liveClass, data['todayAttendance'] ?? {})
                   else
                     _buildNoLiveClassCard(context, (student['name'] ?? 'Student').toString()),
 
@@ -331,7 +331,15 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     });
   }
 
-  Widget _buildLiveClassCard(BuildContext context, String studentName, Map<String, dynamic> liveClass) {
+  Widget _buildLiveClassCard(BuildContext context, String studentName, Map<String, dynamic> liveClass, Map<String, dynamic> todayAttendance) {
+    final status = todayAttendance['status'] ?? 'NOT_MARKED';
+    final statusText = status == 'PRESENT' 
+        ? 'Marked (Present)' 
+        : (status == 'ABSENT' ? 'Marked (Absent)' : 'Not Marked Yet');
+    final statusColor = status == 'PRESENT' 
+        ? Colors.greenAccent 
+        : (status == 'ABSENT' ? Colors.redAccent : Colors.orangeAccent);
+
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)]),
@@ -371,11 +379,11 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Today's Attendance", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-                Text('Marked (Present)', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+                const Text("Today's Attendance", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+                Text(statusText, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
