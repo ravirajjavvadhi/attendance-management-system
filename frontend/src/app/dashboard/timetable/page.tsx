@@ -9,6 +9,8 @@ export default function TimetablePage() {
   const token = (session as any)?.accessToken;
 
   const [sections, setSections] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [selectedSection, setSelectedSection] = useState("");
   
   const [file, setFile] = useState<File | null>(null);
@@ -17,25 +19,28 @@ export default function TimetablePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
 
-  useEffect(() => {
-    if (token) {
-      fetchSections();
-    }
-  }, [token]);
-
-  const fetchSections = async () => {
+  const fetchData = async () => {
     try {
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
-      const res = await fetch(`${baseUrl}/api/v1/academic/sections`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        setSections(await res.json());
-      }
+      const [secRes, clsRes, deptRes] = await Promise.all([
+        fetch(`${baseUrl}/api/v1/academic/sections`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${baseUrl}/api/v1/academic/classes`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${baseUrl}/api/v1/academic/departments`, { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      
+      if (secRes.ok) setSections(await secRes.json());
+      if (clsRes.ok) setClasses(await clsRes.json());
+      if (deptRes.ok) setDepartments(await deptRes.json());
     } catch (e) {
       console.error(e);
     }
   };
+
+  useEffect(() => {
+    if (token) {
+      fetchData();
+    }
+  }, [token]);
 
   const handleUpload = async () => {
     if (!file || !token) return;
@@ -126,9 +131,12 @@ export default function TimetablePage() {
               className="w-full bg-background border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               <option value="">Choose a section...</option>
-              {sections.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
+              {sections.map(s => {
+                const cls = classes.find(c => c.id === s.class_id);
+                const dept = cls ? departments.find(d => d.id === cls.department_id) : null;
+                const prefix = dept && cls ? `${dept.name} - ${cls.name}` : cls ? cls.name : "Unknown";
+                return <option key={s.id} value={s.id}>{prefix} - Section {s.name}</option>;
+              })}
             </select>
           </div>
 
