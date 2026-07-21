@@ -139,6 +139,20 @@ export default function ManagementDashboard() {
 
         </div>
       </div>
+
+      {/* Quick Lookup Section */}
+      <div className="mt-8 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex items-center justify-between">
+        <div>
+          <h2 className="text-slate-200 font-semibold tracking-wide text-sm uppercase">Quick Student Lookup</h2>
+          <p className="text-slate-400 text-xs mt-1">Jump directly to a student's Mega Dashboard</p>
+        </div>
+        <div className="flex gap-4">
+          <input type="text" placeholder="Enter Roll Number..." className="bg-slate-950 border border-slate-800 rounded-lg py-2 px-4 text-sm text-white focus:outline-none focus:border-blue-500/50" />
+          <a href="/student/1" className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+            View Profile
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

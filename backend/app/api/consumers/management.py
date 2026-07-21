@@ -8,6 +8,7 @@ from app.db.database import get_db
 from app.api.deps import get_current_management
 from app.models.user import User
 from app.models.academic import Event
+from app.engines.dashboard_engine import DashboardEngine
 
 router = APIRouter()
 
@@ -56,3 +57,27 @@ def get_events(
         Event.tenant_id == current_user.tenant_id
     ).order_by(Event.event_date.desc()).all()
     return events
+
+@router.get("/student/{student_id}/dashboard")
+def get_management_student_dashboard(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_management)
+):
+    """
+    Allows Management/Admin to view the detailed individual student mega-dashboard,
+    exactly as the Parent sees it (Attendance %, Timeline, CGPA, Faculty Comments).
+    """
+    payload = DashboardEngine.get_student_mega_payload(
+        db=db, 
+        student_id=student_id, 
+        tenant_id=current_user.tenant_id
+    )
+    
+    if not payload:
+        raise HTTPException(status_code=404, detail="Student not found")
+        
+    return {
+        "status": "success",
+        "data": payload
+    }

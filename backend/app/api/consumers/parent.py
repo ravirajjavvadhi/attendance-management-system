@@ -96,152 +96,48 @@ def get_parent_dashboard(
     Returns aggregated JSON payload for the Parent App dashboard.
     Dynamically loads student details based on parent email/user mapping.
     """
+    from app.engines.dashboard_engine import DashboardEngine
+    from app.models.profiles import ParentProfile, ParentStudentLink
+    from fastapi import HTTPException
     
     # Locate Parent Profile
     parent = db.query(ParentProfile).filter(ParentProfile.user_id == current_user.id).first()
+    if not parent:
+        raise HTTPException(status_code=404, detail="Parent profile not found")
+        
+    link = db.query(ParentStudentLink).filter(ParentStudentLink.parent_id == parent.id).first()
+    if not link:
+        raise HTTPException(status_code=404, detail="No linked student found")
+        
+    payload = DashboardEngine.get_student_mega_payload(
+        db=db,
+        student_id=link.student_id,
+        tenant_id=current_user.tenant_id
+    )
     
-    student_name = "Not Provided"
-    student_roll = "N/A"
-    section_name = "N/A"
-    attendance_pct = 100.0
-    total_classes = 0
-    attended = 0
-    today_timetable = []
-    
-    if parent:
-        link = db.query(ParentStudentLink).filter(ParentStudentLink.parent_id == parent.id).first()
-        if link:
-            student = db.query(StudentProfile).filter(StudentProfile.id == link.student_id).first()
-            if student:
-                student_name = student.name or "Student"
-                student_roll = student.roll_number or "N/A"
-                
-                from app.models.academic import Section
-                sec = db.query(Section).filter(Section.id == student.section_id).first()
-                if sec:
-                    section_name = sec.name
-                    
-                # Calculate real attendance
-                from app.models.attendance import AttendanceRecord
-                records = db.query(AttendanceRecord).filter(AttendanceRecord.student_id == student.id).all()
-                if records:
-                    total_classes = len(records)
-                    attended = sum(1 for r in records if r.is_present)
-                    attendance_pct = round((attended / total_classes) * 100, 1)
-                    
-                # Fetch Real Timetable
-                from datetime import datetime
-                from app.models.erp_academic import Timetable, Subject, Period
-                from app.models.user import User as UserModel
-                
-                day_name = datetime.now().strftime("%A").upper()
-                tt_entries = db.query(Timetable).filter(Timetable.section_id == student.section_id, Timetable.day_of_week == day_name).all()
-                
-                # Sort by period start time
-                tt_entries = sorted(tt_entries, key=lambda e: db.query(Period).filter(Period.id == e.period_id).first().start_time if db.query(Period).filter(Period.id == e.period_id).first() else 0)
-                
-                for tt in tt_entries:
-                    subject = db.query(Subject).filter(Subject.id == tt.subject_id).first()
-                    period = db.query(Period).filter(Period.id == tt.period_id).first()
-                    faculty = db.query(UserModel).filter(UserModel.id == tt.faculty_user_id).first()
-                    
-                    # Get faculty name from FacultyProfile if available
-                    faculty_name = "Unknown"
-                    if faculty:
-                        from app.models.profiles import FacultyProfile
-                        fac_prof = db.query(FacultyProfile).filter(FacultyProfile.user_id == faculty.id).first()
-                        faculty_name = fac_prof.name if (fac_prof and fac_prof.name) else (faculty.email or "Unknown")
-                    
-                    if subject and period:
-                        today_timetable.append({
-                            "period": period.period_number,
-                            "time": f"{period.start_time.strftime('%H:%M')} - {period.end_time.strftime('%H:%M')}",
-                            "subject": subject.name,
-                            "faculty": faculty_name,
-                            "status": "UPCOMING"
-                        })
-    
-    # Calculate real today's attendance status
-    from app.models.attendance import AttendanceRecord
-    from datetime import date as date_cls
-    
-    today_records = db.query(AttendanceRecord).filter(
-        AttendanceRecord.student_id == student.id,
-        AttendanceRecord.date == date_cls.today()
-    ).all()
-    
-    today_status = "NOT_MARKED"
-    if today_records:
-        today_status = "ABSENT" if any(not r.is_present for r in today_records) else "PRESENT"
+    if not payload:
+        raise HTTPException(status_code=404, detail="Student data not found")
 
-    # Fetch Real Notifications
+    # Inject Parent's specific notifications
     from app.models.notification import NotificationLog
     db_notifs = db.query(NotificationLog).filter(
         NotificationLog.tenant_id == current_user.tenant_id,
         (NotificationLog.recipient == current_user.email) | (NotificationLog.recipient == current_user.mobile_number)
     ).order_by(NotificationLog.created_at.desc()).limit(10).all()
     
-    notifications_list = [
+    payload['notifications'] = [
         {
             "id": n.id,
             "title": "Attendance Alert" if "absent" in n.message.lower() else "System Notification",
             "message": n.message,
-            "date": n.created_at.strftime("%Y-%m-%d %H:%M")
+            "date": n.created_at.strftime("%Y-%m-%d %H:%M"),
+            "type": "ATTENDANCE" if "absent" in n.message.lower() else "GENERAL"
         } for n in db_notifs
     ]
-    if not notifications_list:
-        notifications_list = [
-            {"id": 0, "title": "Welcome", "message": f"Welcome to the portal. Monitoring {student_name}.", "date": date.today().isoformat()}
-        ]
 
-    # Fetch Real Upcoming Events
-    from app.models.academic import Event
-    events = db.query(Event).filter(Event.tenant_id == current_user.tenant_id).order_by(Event.event_date.desc()).limit(3).all()
-    upcoming_events = [
-        {
-            "id": e.id,
-            "title": e.title,
-            "description": e.description or "",
-            "date": e.event_date.isoformat()
-        } for e in events
-    ]
-    
     return {
         "status": "success",
-        "data": {
-            "student": {
-                "name": student_name,
-                "roll_number": student_roll,
-                "branch": "Computer Science",
-                "semester": f"Section {section_name}"
-            },
-            "todayAttendance": {
-                "status": today_status,
-                "entry_time": "08:45 AM"
-            },
-            "attendancePercentage": attendance_pct,
-            "notifications": notifications_list,
-            "todayTimetable": today_timetable if today_timetable else [
-                {"period": 1, "subject": "No classes scheduled today", "status": "FREE"}
-            ],
-            "assignments": [
-                {"subject": "Math", "title": "Calculus Assignment 1", "due_date": "2026-07-20"}
-            ],
-            "examSummary": {
-                "latest_exam": "Midterm 1",
-                "gpa": 8.5
-            },
-            "quickStats": {
-                "total_classes": total_classes if total_classes > 0 else 100,
-                "attended": attended if total_classes > 0 else 90
-            },
-            "aiInsights": {
-                "trend": "Positive",
-                "message": f"Real-time attendance summary for {student_name} is active."
-            },
-            "upcomingEvents": upcoming_events
-        }
-
+        "data": payload
     }
 
 @router.get("/profile")

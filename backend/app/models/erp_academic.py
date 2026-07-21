@@ -86,3 +86,23 @@ class Timetable(Base):
     subject_id = Column(Integer, ForeignKey("erp_subjects.id"), nullable=False)
     faculty_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     room_number = Column(String, nullable=True)
+
+class SemesterResult(Base):
+    __tablename__ = "erp_semester_results"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("student_profiles.id"), nullable=False)
+    semester_id = Column(Integer, ForeignKey("erp_semesters.id"), nullable=False)
+    sgpa = Column(Integer, default=0) # Stored as SGPA * 100 for precision, or Float
+    credits_earned = Column(Integer, default=0)
+
+class SubjectMark(Base):
+    __tablename__ = "erp_subject_marks"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
+    result_id = Column(Integer, ForeignKey("erp_semester_results.id"), nullable=False)
+    subject_id = Column(Integer, ForeignKey("erp_subjects.id"), nullable=False)
+    marks_obtained = Column(Integer, default=0)
+    grade = Column(String, nullable=True)

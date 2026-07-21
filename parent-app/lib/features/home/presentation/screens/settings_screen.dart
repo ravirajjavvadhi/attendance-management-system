@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:eduflow_core/eduflow_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../main.dart';
 
 final parentProfileProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   final dioClient = ref.watch(dioClientProvider);
@@ -25,7 +27,9 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(parentProfileProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark || 
+                   (themeMode == ThemeMode.system && Theme.of(context).brightness == Brightness.dark);
 
     return Scaffold(
       appBar: AppBar(
@@ -181,7 +185,11 @@ class SettingsScreen extends ConsumerWidget {
                 )),
                 _buildSettingTile(context, Icons.dark_mode, 'Dark Mode', trailing: Switch(
                   value: isDark,
-                  onChanged: (_) {},
+                  onChanged: (val) async {
+                    ref.read(themeModeProvider.notifier).state = val ? ThemeMode.dark : ThemeMode.light;
+                    final prefs = await SharedPreferences.getInstance();
+                    prefs.setBool('isDarkMode', val);
+                  },
                   activeColor: Colors.indigo,
                 )),
                 _buildSettingTile(context, Icons.language, 'Language', subtitle: 'English'),

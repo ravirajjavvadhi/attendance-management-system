@@ -10,4 +10,4 @@ passlib
 bcrypt==3.2.2
 python-multipart
 email-validator
-google-generativeai
+groq

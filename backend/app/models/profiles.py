@@ -58,3 +58,13 @@ class ParentStudentLink(Base):
     receive_notifications = Column(Boolean, default=True)
     receive_sms = Column(Boolean, default=True)
     receive_push = Column(Boolean, default=True)
+
+class FacultyComment(Base):
+    __tablename__ = "faculty_comments"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("student_profiles.id"), nullable=False)
+    faculty_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    comment = Column(String, nullable=False)
+    created_at = Column(String, nullable=True) # or DateTime

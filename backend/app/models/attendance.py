@@ -26,3 +26,15 @@ class AttendanceRecord(Base):
     # ERP Linkages
     subject_id = Column(Integer, ForeignKey("erp_subjects.id"), nullable=True, index=True)
     session_id = Column(Integer, ForeignKey("attendance_sessions.id"), nullable=True, index=True)
+
+class AttendanceSummary(Base):
+    __tablename__ = "attendance_summaries"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("student_profiles.id"), nullable=False)
+    subject_id = Column(Integer, ForeignKey("erp_subjects.id"), nullable=True) # Null for overall summary
+    month = Column(String, nullable=True) # e.g. "2023-10" or Null for semester overall
+    total_classes = Column(Integer, default=0)
+    attended_classes = Column(Integer, default=0)
+    percentage = Column(Integer, default=0) # Stored as percentage * 100 for precision, or float

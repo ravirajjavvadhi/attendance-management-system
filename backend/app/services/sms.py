@@ -45,7 +45,7 @@ def send_email(to_email: str, subject: str, body: str, recipient_id: int, tenant
     
     return {"status": status}
 
-def queue_sms(student_id: int, date: str, tenant_id: int, period: int = None):
+def queue_sms(student_id: int, date: str, tenant_id: int, period: int = None, subject_name: str = None):
     """
     Background worker that formats the custom SMS for a student's absence and
     queues it for the Android SIM gateway. Will silently catch missing phone numbers.
@@ -86,24 +86,14 @@ def queue_sms(student_id: int, date: str, tenant_id: int, period: int = None):
             if template:
                 message = template.absent_message.replace("{name}", student_name).replace("{roll_no}", roll_number)
             else:
-                if period is not None:
-                    message = (
-                        "Attendance Alert\n\n"
-                        "Dear Parent/Guardian,\n\n"
-                        f"{student_name} ({roll_number}) was absent during Period {period} on {date}.\n\n"
-                        f"Institution: {institution_name}\n\n"
-                        "Regards,\n"
-                        f"{institution_name}"
-                    )
+                if period is not None and subject_name is not None:
+                    message = f"Absent Alert: {student_name} ({roll_number}) was absent for {subject_name} (Period {period}) on {date}."
+                elif period is not None:
+                    message = f"Absent Alert: {student_name} ({roll_number}) was absent for Period {period} on {date}."
+                elif subject_name is not None:
+                    message = f"Absent Alert: {student_name} ({roll_number}) was absent for {subject_name} on {date}."
                 else:
-                    message = (
-                        "Attendance Alert\n\n"
-                        "Dear Parent/Guardian,\n\n"
-                        f"{student_name} ({roll_number}) has been recorded absent on {date}.\n\n"
-                        f"Institution: {institution_name}\n\n"
-                        "Regards,\n"
-                        f"{institution_name}"
-                    )
+                    message = f"Absent Alert: {student_name} ({roll_number}) was absent on {date}."
             
             import uuid
             new_uuid = str(uuid.uuid4())
