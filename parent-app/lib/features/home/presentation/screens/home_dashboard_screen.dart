@@ -71,7 +71,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
               const SizedBox(height: 16),
               Text('Error loading dashboard: $err'),
               ElevatedButton(
-                onপদে: () => ref.invalidate(parentDashboardProvider),
+                onPressed: () => ref.invalidate(parentDashboardProvider),
                 child: const Text('Retry'),
               )
             ],
@@ -432,7 +432,11 @@ class _SubjectProgress extends StatelessWidget {
           const SizedBox(width: 16),
           SizedBox(
             width: 40,
-            child: Text('$marks', style: const TextStyle(fontWeight: FontWeight.bold, textAlign: TextAlign.right)),
+            child: Text(
+              '$marks', 
+              textAlign: TextAlign.right, 
+              style: const TextStyle(fontWeight: FontWeight.bold)
+            ),
           )
         ],
       ),

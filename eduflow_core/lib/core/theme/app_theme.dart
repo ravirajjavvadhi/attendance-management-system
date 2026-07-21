@@ -21,7 +21,7 @@ class AppTheme {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.black87,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: const Color(0xFFFFFFFF),
         elevation: 0, // We will use soft shadows in UI
         shape: RoundedRectangleBorder(

@@ -105,7 +105,13 @@ class DashboardEngine:
         # Fetch Real Timetable for Today
         day_name = datetime.now().strftime("%A").upper()
         tt_entries = db.query(Timetable).filter(Timetable.section_id == student.section_id, Timetable.day_of_week == day_name).all()
-        tt_entries = sorted(tt_entries, key=lambda e: db.query(Period).filter(Period.id == e.period_id).first().start_time if db.query(Period).filter(Period.id == e.period_id).first() else 0)
+        def get_period_sort_key(e):
+            period = db.query(Period).filter(Period.id == e.period_id).first()
+            if period and period.start_time:
+                return str(period.start_time)
+            return "23:59:59"
+            
+        tt_entries = sorted(tt_entries, key=get_period_sort_key)
         
         current_class_info = {"status": "FREE", "subject": "No class", "faculty": "", "room": ""}
         now_time = datetime.now().time()
