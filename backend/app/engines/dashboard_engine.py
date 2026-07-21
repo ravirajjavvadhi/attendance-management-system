@@ -60,14 +60,14 @@ class DashboardEngine:
 
         # 3. Timeline Engine
         events = db.query(TimelineEvent).filter(
-            TimelineEvent.student_id == student.id,
+            TimelineEvent.user_id == student.user_id if student.user_id else False,
             func.date(TimelineEvent.timestamp) == date_cls.today()
         ).order_by(TimelineEvent.timestamp.asc()).all()
         
         timeline = [
             {
                 "time": e.timestamp.strftime("%I:%M %p"),
-                "title": e.title,
+                "title": e.event_type,
                 "description": e.description,
                 "type": e.event_type
             } for e in events

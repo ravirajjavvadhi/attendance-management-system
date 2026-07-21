@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, cast, Integer
 from app.models.attendance import AttendanceRecord
 from app.models.profiles import StudentProfile
 from app.models.erp_academic import Subject
@@ -20,7 +20,7 @@ class ReportingEngine:
             AttendanceRecord.subject_id,
             Subject.name,
             func.count(AttendanceRecord.id).label("total_classes"),
-            func.sum(func.cast(AttendanceRecord.is_present, func.Integer)).label("total_present")
+            func.sum(cast(AttendanceRecord.is_present, Integer)).label("total_present")
         ).join(Subject, Subject.id == AttendanceRecord.subject_id)\
          .filter(AttendanceRecord.tenant_id == tenant_id)
 
