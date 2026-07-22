@@ -43,3 +43,65 @@ class AIEngine:
             
         else:
             return "I am EduFlow AI. I can analyze attendance risk, department performance, and overall institution health. How can I assist you today?"
+
+    @staticmethod
+    def get_student_insight(db: Session, student_id: int):
+        from datetime import date
+        import os
+        from sqlalchemy import func
+        try:
+            from groq import Groq
+        except ImportError:
+            Groq = None
+            
+        from app.models.erp_academic import StudentAIInsight, SemesterResult
+        from app.models.attendance import AttendanceRecord
+        from app.models.profiles import StudentProfile
+        
+        today = date.today()
+        # Check if insight already exists for today
+        existing_insight = db.query(StudentAIInsight).filter(
+            StudentAIInsight.student_id == student_id,
+            func.date(StudentAIInsight.created_at) == today
+        ).first()
+        
+        if existing_insight:
+            return existing_insight.insight_text
+            
+        # Fetch stats
+        student = db.query(StudentProfile).filter(StudentProfile.id == student_id).first()
+        if not student:
+            return ""
+            
+        attendance_records = db.query(AttendanceRecord).filter(AttendanceRecord.student_id == student_id).all()
+        total_classes = len(attendance_records)
+        attended_classes = sum(1 for r in attendance_records if r.is_present)
+        attendance_pct = round((attended_classes / total_classes * 100), 1) if total_classes > 0 else 100.0
+        
+        sem_result = db.query(SemesterResult).filter(SemesterResult.student_id == student_id).order_by(SemesterResult.id.desc()).first()
+        cgpa = sem_result.sgpa / 100.0 if sem_result and sem_result.sgpa > 0 else 0.0
+        
+        api_key = os.environ.get("GROQ_API_KEY")
+        if not api_key or not Groq:
+            return "AI Insights currently unavailable."
+            
+        try:
+            client = Groq(api_key=api_key)
+            prompt = f"Student {student.name or 'N/A'} has an attendance of {attendance_pct}% and a CGPA of {cgpa}. Write a 3-sentence actionable insight for this student."
+            chat_completion = client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model="llama3-8b-8192",
+            )
+            insight_text = chat_completion.choices[0].message.content.strip()
+            
+            new_insight = StudentAIInsight(
+                student_id=student_id,
+                insight_text=insight_text,
+                model_used="llama3-8b-8192"
+            )
+            db.add(new_insight)
+            db.commit()
+            return insight_text
+        except Exception as e:
+            print(f"Groq API Error: {e}")
+            return "AI Insights currently unavailable."

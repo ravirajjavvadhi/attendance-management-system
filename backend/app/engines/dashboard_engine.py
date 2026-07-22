@@ -50,13 +50,9 @@ class DashboardEngine:
                     })
         
         if not academic_performance:
-            academic_performance = [
-                {"subject": "Mathematics", "marks": 92, "grade": "A+"},
-                {"subject": "Physics", "marks": 88, "grade": "A"},
-                {"subject": "Chemistry", "marks": 79, "grade": "B+"}
-            ]
-            cgpa = cgpa if cgpa > 0 else 8.74
-            credits = credits if credits > 0 else 120
+            academic_performance = []
+            cgpa = cgpa if cgpa > 0 else 0.0
+            credits = credits if credits > 0 else 0
 
         # 3. Timeline Engine
         events = db.query(TimelineEvent).filter(
@@ -74,11 +70,7 @@ class DashboardEngine:
         ]
         
         if not timeline:
-            timeline = [
-                {"time": "08:43 AM", "title": "Entered Campus", "description": "Gate 1", "type": "GATE_ENTRY"},
-                {"time": "09:00 AM", "title": "Mathematics", "description": "Present", "type": "ATTENDANCE_PRESENT"},
-                {"time": "11:00 AM", "title": "Chemistry", "description": "Absent", "type": "ATTENDANCE_ABSENT"},
-            ]
+            timeline = []
 
         # 4. Faculty Comments
         comments_db = db.query(FacultyComment).filter(FacultyComment.student_id == student.id).order_by(FacultyComment.id.desc()).limit(5).all()
@@ -97,10 +89,7 @@ class DashboardEngine:
             })
         
         if not faculty_comments:
-            faculty_comments = [
-                {"faculty_name": "Dr. Kumar", "comment": "Excellent participation.", "date": "2026-07-20"},
-                {"faculty_name": "Dr. Sharma", "comment": "Needs improvement in Labs.", "date": "2026-07-18"}
-            ]
+            faculty_comments = []
 
         # Fetch Real Timetable for Today
         day_name = datetime.now().strftime("%A").upper()
@@ -148,10 +137,13 @@ class DashboardEngine:
                 })
 
         # AI Insight Logic
+        from app.engines.ai_engine import AIEngine
+        insight_text = AIEngine.get_student_insight(db, student.id)
+        
         ai_insights = {
-            "trend": "Positive",
-            "message": f"Attendance increased 4% this month.\nPhysics attendance dropped.\nCurrent shortage risk: Low.\nExpected attendance: 89%.\nKeep attending all labs.",
-            "score": "Excellent"
+            "trend": "Analysis",
+            "message": insight_text,
+            "score": "N/A"
         }
 
         # Fetch Real Notifications (For Parents)

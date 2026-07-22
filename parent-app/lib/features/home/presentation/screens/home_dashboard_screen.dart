@@ -53,11 +53,11 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => context.go('/notifications'), // Go to Notification Center
+            onPressed: () => context.push('/notifications'), // Go to Notification Center
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.go('/settings'),
+            onPressed: () => context.push('/settings'),
           ),
         ],
       ),

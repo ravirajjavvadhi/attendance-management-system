@@ -337,3 +337,86 @@ def get_students(
         })
         
     return result
+
+class SubjectMarkInput(BaseModel):
+    subject_id: int
+    marks_obtained: float
+    grade: str
+
+class MarksSubmit(BaseModel):
+    student_id: int
+    semester_id: int
+    sgpa: float
+    credits_earned: int
+    marks: List[SubjectMarkInput]
+
+@router.post("/faculty/marks", status_code=status.HTTP_201_CREATED)
+def submit_marks(
+    request: MarksSubmit,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_management_or_faculty)
+):
+    from app.models.erp_academic import SemesterResult, SubjectMark
+    
+    # Check if result already exists
+    result = db.query(SemesterResult).filter(
+        SemesterResult.student_id == request.student_id,
+        SemesterResult.semester_id == request.semester_id
+    ).first()
+    
+    if result:
+        result.sgpa = request.sgpa
+        result.credits_earned = request.credits_earned
+    else:
+        result = SemesterResult(
+            student_id=request.student_id,
+            semester_id=request.semester_id,
+            sgpa=request.sgpa,
+            credits_earned=request.credits_earned
+        )
+        db.add(result)
+        db.commit()
+        db.refresh(result)
+        
+    for mark in request.marks:
+        sub_mark = db.query(SubjectMark).filter(
+            SubjectMark.result_id == result.id,
+            SubjectMark.subject_id == mark.subject_id
+        ).first()
+        
+        if sub_mark:
+            sub_mark.marks_obtained = mark.marks_obtained
+            sub_mark.grade = mark.grade
+        else:
+            new_mark = SubjectMark(
+                result_id=result.id,
+                subject_id=mark.subject_id,
+                marks_obtained=mark.marks_obtained,
+                grade=mark.grade
+            )
+            db.add(new_mark)
+            
+    db.commit()
+    return {"message": "Marks updated successfully"}
+
+class RemarkCreate(BaseModel):
+    remark_text: str
+
+@router.post("/faculty/students/{student_id}/remarks", status_code=status.HTTP_201_CREATED)
+def add_faculty_remark(
+    student_id: int,
+    request: RemarkCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_management_or_faculty)
+):
+    from app.models.erp_academic import FacultyRemark
+    
+    remark = FacultyRemark(
+        student_id=student_id,
+        faculty_user_id=current_user.id,
+        remark_text=request.remark_text
+    )
+    db.add(remark)
+    db.commit()
+    db.refresh(remark)
+    return remark

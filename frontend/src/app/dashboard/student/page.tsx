@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, Filter, Download, MoreHorizontal, FileSpreadsheet, Zap, UserPlus, GraduationCap, FolderTree, Edit2, Trash2 } from "lucide-react";
+import { Search, Plus, Filter, Download, MoreHorizontal, FileSpreadsheet, Zap, UserPlus, GraduationCap, FolderTree, Edit2, Trash2, Eye } from "lucide-react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 interface Student {
   id: number;
@@ -30,6 +31,7 @@ export default function StudentManagement() {
   const [sections, setSections] = useState<any[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   
+  const [selectedDeptId, setSelectedDeptId] = useState("");
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedSectionId, setSelectedSectionId] = useState("");
   
@@ -497,12 +499,42 @@ export default function StudentManagement() {
       )}
 
       <div className="bg-card border rounded-xl shadow-sm flex flex-col">
-        <div className="p-4 border-b border-border flex flex-col sm:flex-row justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
+        <div className="p-4 border-b border-border flex flex-col sm:flex-row justify-between gap-4 bg-secondary/10">
+          <div className="flex gap-4 flex-wrap">
+            <select 
+              value={selectedDeptId}
+              onChange={(e) => { setSelectedDeptId(e.target.value); setSelectedClassId(""); setSelectedSectionId(""); }}
+              className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 min-w-[150px]"
+            >
+              <option value="">1. Select Department</option>
+              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+            
+            <select 
+              value={selectedClassId}
+              onChange={(e) => { setSelectedClassId(e.target.value); setSelectedSectionId(""); }}
+              disabled={!selectedDeptId}
+              className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 min-w-[150px] disabled:opacity-50"
+            >
+              <option value="">2. Select Class/Year</option>
+              {classes.filter(c => c.department_id.toString() === selectedDeptId).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            
+            <select 
+              value={selectedSectionId}
+              onChange={(e) => setSelectedSectionId(e.target.value)}
+              disabled={!selectedClassId}
+              className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 min-w-[150px] disabled:opacity-50"
+            >
+              <option value="">3. Select Section</option>
+              {sections.filter(s => s.class_id.toString() === selectedClassId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div className="relative max-w-sm w-full">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <input 
               type="text" 
-              placeholder="Search students by name or roll no..."
+              placeholder="Search by name or roll no..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-background border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
@@ -511,7 +543,16 @@ export default function StudentManagement() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          {!selectedSectionId && !search ? (
+            <div className="py-12 text-center flex flex-col items-center justify-center">
+              <FolderTree className="w-12 h-12 text-muted-foreground/30 mb-4" />
+              <h3 className="text-lg font-medium text-foreground">Select a Section</h3>
+              <p className="text-muted-foreground text-sm max-w-md mx-auto mt-2">
+                Use the hierarchical filters above to select a Department, Class, and Section to view enrolled students.
+              </p>
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-border bg-secondary/20">
                 <th className="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Roll No.</th>
@@ -531,7 +572,7 @@ export default function StudentManagement() {
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">No students onboarded yet.</td>
                 </tr>
-              ) : students.filter(s => s.name.toLowerCase().includes(search.toLowerCase()) || s.roll_number.includes(search)).map((student) => (
+              ) : students.filter(s => (selectedSectionId ? s.section_id.toString() === selectedSectionId : true) && (s.name.toLowerCase().includes(search.toLowerCase()) || s.roll_number.includes(search))).map((student) => (
                 <tr key={student.id} className="hover:bg-secondary/30 transition-colors">
                   <td className="px-6 py-4 text-sm font-medium text-muted-foreground">{student.roll_number}</td>
                   <td className="px-6 py-4">
@@ -551,6 +592,9 @@ export default function StudentManagement() {
                   <td className="px-6 py-4 text-sm text-muted-foreground">{student.parent_mobile || "-"}</td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">{student.parent_email || "-"}</td>
                   <td className="px-6 py-4 text-right flex justify-end gap-2">
+                    <Link href={`/dashboard/student/${student.id}`} className="text-emerald-500 hover:text-emerald-600 transition-colors p-1.5 rounded hover:bg-emerald-500/10" title="View Live Report">
+                      <Eye className="w-4 h-4" />
+                    </Link>
                     <button onClick={() => openEditModal(student)} className="text-blue-500 hover:text-blue-600 transition-colors p-1.5 rounded hover:bg-blue-500/10">
                       <Edit2 className="w-4 h-4" />
                     </button>
@@ -562,6 +606,7 @@ export default function StudentManagement() {
               ))}
             </tbody>
           </table>
+          )}
         </div>
       </div>
     </div>

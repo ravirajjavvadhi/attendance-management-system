@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="EduFlow AI API", description="Smart Academic Operations & Attendance Automation Platform", lifespan=lifespan)
 
 from app.db.database import engine, Base
-from app.models import user, tenant, academic, attendance, notification, profiles, device, sms
+from app.models import user, tenant, academic, attendance, notification, profiles, device, sms, erp_academic
 
 # Auto-create all tables in the database if they don't exist
 from sqlalchemy import text

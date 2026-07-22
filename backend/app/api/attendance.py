@@ -163,6 +163,19 @@ def submit_attendance(
             )
             db.add(new_record)
             
+        # Add TimelineEvent
+        from app.models.communication import TimelineEvent
+        student_prof = db.query(StudentProfile).filter(StudentProfile.id == record.student_id).first()
+        if student_prof and student_prof.user_id:
+            event_type = "ATTENDANCE_PRESENT" if record.is_present else "ATTENDANCE_ABSENT"
+            desc = "Marked Present" if record.is_present else "Marked Absent"
+            t_event = TimelineEvent(
+                user_id=student_prof.user_id,
+                event_type=event_type,
+                description=desc
+            )
+            db.add(t_event)
+
         if not record.is_present:
             absent_student_ids.append(record.student_id)
             
@@ -225,6 +238,18 @@ def submit_smart_attendance(
                 marked_by=current_faculty.id
             )
             db.add(new_record)
+            
+        # Add TimelineEvent
+        from app.models.communication import TimelineEvent
+        if student.user_id:
+            event_type = "ATTENDANCE_PRESENT" if is_present else "ATTENDANCE_ABSENT"
+            desc = f"Marked {'Present' if is_present else 'Absent'} for period {attendance_data.period}" if attendance_data.period else f"Marked {'Present' if is_present else 'Absent'}"
+            t_event = TimelineEvent(
+                user_id=student.user_id,
+                event_type=event_type,
+                description=desc
+            )
+            db.add(t_event)
             
     db.commit()
     
