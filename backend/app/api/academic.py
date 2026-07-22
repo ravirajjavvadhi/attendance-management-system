@@ -455,7 +455,7 @@ def get_faculty_live_class(
             now_dt = datetime.combine(dummy_date, now_time)
             
             if start_dt.time() <= now_dt.time() <= end_dt.time():
-                from app.models.academic import Section, Year, Department
+                from app.models.academic import Section, Class as AcademicClass, Department
                 from app.models.erp_academic import Subject
                 section = db.query(Section).filter(Section.id == tt.section_id).first()
                 subject = db.query(Subject).filter(Subject.id == tt.subject_id).first()
@@ -463,15 +463,15 @@ def get_faculty_live_class(
                 time_str = f"{period.start_time.strftime('%I:%M %p')} - {period.end_time.strftime('%I:%M %p')}"
                 
                 if section:
-                    year = db.query(Year).filter(Year.id == section.year_id).first()
-                    department = db.query(Department).filter(Department.id == year.department_id).first() if year else None
+                    academic_class = db.query(AcademicClass).filter(AcademicClass.id == section.class_id).first()
+                    department = db.query(Department).filter(Department.id == academic_class.department_id).first() if academic_class else None
                     
                     return {
                         "live": True,
                         "section_id": tt.section_id,
                         "period_number": period.period_number,
                         "section_name": section.name,
-                        "year_name": year.name if year else "",
+                        "year_name": academic_class.name if academic_class else "",
                         "department_name": department.name if department else "",
                         "subject_name": subject.name if subject else "Unknown",
                         "time": time_str
@@ -492,8 +492,8 @@ def get_faculty_weekly_schedule(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_management_or_faculty)
 ):
-    from app.models.academic import Timetable, Period, Section, Year, Department
-    from app.models.erp_academic import Subject
+    from app.models.academic import Section, Class as AcademicClass, Department
+    from app.models.erp_academic import Subject, Timetable, Period
     from zoneinfo import ZoneInfo
     from datetime import datetime, timedelta, date
 
@@ -524,8 +524,8 @@ def get_faculty_weekly_schedule(
         if not (period and section and subject):
             continue
             
-        year = db.query(Year).filter(Year.id == section.year_id).first()
-        department = db.query(Department).filter(Department.id == year.department_id).first() if year else None
+        academic_class = db.query(AcademicClass).filter(AcademicClass.id == section.class_id).first()
+        department = db.query(Department).filter(Department.id == academic_class.department_id).first() if academic_class else None
         
         time_str = f"{period.start_time.strftime('%I:%M %p')} - {period.end_time.strftime('%I:%M %p')}"
         
@@ -551,7 +551,7 @@ def get_faculty_weekly_schedule(
             "period_number": period.period_number,
             "subject_name": subject.name,
             "section_name": section.name,
-            "year_name": year.name if year else "",
+            "year_name": academic_class.name if academic_class else "",
             "department_name": department.name if department else "",
             "time": time_str,
             "status": class_status,
