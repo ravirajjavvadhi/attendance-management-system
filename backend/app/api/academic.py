@@ -456,7 +456,12 @@ def get_faculty_live_class(
             
             if start_dt.time() <= now_dt.time() <= end_dt.time():
                 from app.models.academic import Section, Year, Department
+                from app.models.erp_academic import Subject
                 section = db.query(Section).filter(Section.id == tt.section_id).first()
+                subject = db.query(Subject).filter(Subject.id == tt.subject_id).first()
+                
+                time_str = f"{period.start_time.strftime('%I:%M %p')} - {period.end_time.strftime('%I:%M %p')}"
+                
                 if section:
                     year = db.query(Year).filter(Year.id == section.year_id).first()
                     department = db.query(Department).filter(Department.id == year.department_id).first() if year else None
@@ -467,13 +472,99 @@ def get_faculty_live_class(
                         "period_number": period.period_number,
                         "section_name": section.name,
                         "year_name": year.name if year else "",
-                        "department_name": department.name if department else ""
+                        "department_name": department.name if department else "",
+                        "subject_name": subject.name if subject else "Unknown",
+                        "time": time_str
                     }
                 else:
                     return {
                         "live": True,
                         "section_id": tt.section_id,
-                        "period_number": period.period_number
+                        "period_number": period.period_number,
+                        "subject_name": subject.name if subject else "Unknown",
+                        "time": time_str
                     }
                 
     return {"live": False}
+
+@router.get("/faculty/weekly-schedule", status_code=status.HTTP_200_OK)
+def get_faculty_weekly_schedule(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_management_or_faculty)
+):
+    from app.models.academic import Timetable, Period, Section, Year, Department
+    from app.models.erp_academic import Subject
+    from zoneinfo import ZoneInfo
+    from datetime import datetime, timedelta, date
+
+    ist = ZoneInfo('Asia/Kolkata')
+    now_ist = datetime.now(ist)
+    current_day = now_ist.strftime("%A").upper()
+    now_time = now_ist.time()
+
+    tt_entries = db.query(Timetable).filter(
+        Timetable.faculty_user_id == current_user.id
+    ).all()
+
+    schedule = {
+        "MONDAY": [], "TUESDAY": [], "WEDNESDAY": [], 
+        "THURSDAY": [], "FRIDAY": [], "SATURDAY": []
+    }
+
+    dummy_date = date(2000, 1, 1)
+
+    for tt in tt_entries:
+        if tt.day_of_week not in schedule:
+            continue
+            
+        period = db.query(Period).filter(Period.id == tt.period_id).first()
+        section = db.query(Section).filter(Section.id == tt.section_id).first()
+        subject = db.query(Subject).filter(Subject.id == tt.subject_id).first()
+        
+        if not (period and section and subject):
+            continue
+            
+        year = db.query(Year).filter(Year.id == section.year_id).first()
+        department = db.query(Department).filter(Department.id == year.department_id).first() if year else None
+        
+        time_str = f"{period.start_time.strftime('%I:%M %p')} - {period.end_time.strftime('%I:%M %p')}"
+        
+        # Calculate status
+        class_status = "Upcoming"
+        is_live = False
+        
+        if tt.day_of_week == current_day:
+            start_dt = datetime.combine(dummy_date, period.start_time) - timedelta(minutes=10)
+            end_dt = datetime.combine(dummy_date, period.end_time) + timedelta(minutes=10)
+            now_dt = datetime.combine(dummy_date, now_time)
+            
+            if now_dt < start_dt:
+                class_status = "Upcoming"
+            elif start_dt <= now_dt <= end_dt:
+                class_status = "Live Now"
+                is_live = True
+            else:
+                class_status = "Completed"
+        
+        schedule[tt.day_of_week].append({
+            "section_id": tt.section_id,
+            "period_number": period.period_number,
+            "subject_name": subject.name,
+            "section_name": section.name,
+            "year_name": year.name if year else "",
+            "department_name": department.name if department else "",
+            "time": time_str,
+            "status": class_status,
+            "is_live": is_live,
+            "day": tt.day_of_week,
+            "period_start": period.start_time.strftime('%H:%M')
+        })
+
+    # Sort each day's schedule by period start time
+    for day in schedule:
+        schedule[day] = sorted(schedule[day], key=lambda x: x["period_start"])
+
+    return {
+        "current_day": current_day,
+        "schedule": schedule
+    }

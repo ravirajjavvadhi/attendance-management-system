@@ -22,8 +22,7 @@ class NotificationCenterScreen extends ConsumerWidget {
       ),
       data: (data) {
         final List<dynamic> rawNotifs = data['notifications'] ?? [];
-        final notifications = rawNotifs.map((e) => e as Map<String, dynamic>).toList();
-
+        final notifications = rawNotifs.map((e) => Map<String, dynamic>.from(e as Map)).toList();
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -54,7 +53,7 @@ class NotificationCenterScreen extends ConsumerWidget {
               child: TabBarView(
                 children: [
                   _NotificationList(notifications: notifications),
-                  _NotificationList(notifications: notifications.where((n) => !(n['isRead'] as bool)).toList()),
+                  _NotificationList(notifications: notifications.where((n) => !(n['isRead'] == true)).toList()),
                   _NotificationList(notifications: notifications.where((n) => n['type'] == 'ACADEMIC').toList()),
                 ],
               ),
@@ -92,7 +91,7 @@ class _NotificationList extends StatelessWidget {
       itemCount: notifications.length,
       itemBuilder: (context, index) {
         final notif = notifications[index];
-        final isRead = notif['isRead'] as bool;
+        final isRead = notif['isRead'] == true;
         
         IconData icon = Icons.notifications;
         Color iconColor = const Color(0xFF2563EB);

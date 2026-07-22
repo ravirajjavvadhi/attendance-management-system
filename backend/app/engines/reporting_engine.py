@@ -42,7 +42,7 @@ class ReportingEngine:
             percentage = (row.total_present / row.total_classes * 100) if row.total_classes > 0 else 0
             report.append({
                 "subject_id": row.subject_id,
-                "subject_name": row.name,
+                "subject": row.name,
                 "total_classes": row.total_classes,
                 "total_present": row.total_present,
                 "percentage": round(percentage, 2)
