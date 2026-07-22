@@ -12,6 +12,41 @@ export default function StudentDashboard({ params }: { params: { id: string } })
   const [payload, setPayload] = useState<any | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleUploadDocument = async () => {
+    const title = prompt("Enter Document Title (e.g. Term 1 Report Card):");
+    if (!title) return;
+    
+    // In a real app, this would use a file picker and upload to S3/Firebase Storage to get a URL.
+    // For this demonstration, we simulate the upload and just pass a dummy URL.
+    const file_url = "https://example.com/document.pdf";
+    const category = "ACADEMIC";
+
+    setIsUploading(true);
+    try {
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const res = await fetch(`${baseUrl}/api/v1/consumers/management/student/${studentId}/documents`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, category, file_url })
+      });
+      
+      if (res.ok) {
+        alert("Document uploaded successfully and sent to Parent App!");
+      } else {
+        alert("Failed to upload document");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error uploading document");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -65,12 +100,22 @@ export default function StudentDashboard({ params }: { params: { id: string } })
             <h1 className="text-3xl font-bold tracking-tight text-white">{payload.studentStatus.name}</h1>
             <p className="text-slate-400 mt-1 text-sm">{payload.studentStatus.roll_number} • {payload.studentStatus.branch} • {payload.studentStatus.semester}</p>
           </div>
-          <div className="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-sm border border-emerald-500/20 flex items-center gap-2 font-medium">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            Live Report
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleUploadDocument}
+              disabled={isUploading}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-full text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+              {isUploading ? "Uploading..." : "Upload Document"}
+            </button>
+            <div className="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-sm border border-emerald-500/20 flex items-center gap-2 font-medium">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              Live Report
+            </div>
           </div>
         </div>
       </header>

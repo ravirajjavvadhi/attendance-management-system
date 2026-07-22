@@ -81,3 +81,75 @@ def get_management_student_dashboard(
         "status": "success",
         "data": payload
     }
+
+class DocumentUploadRequest(BaseModel):
+    title: str
+    category: str
+    file_url: str
+
+class LeaveStatusUpdate(BaseModel):
+    status: str
+
+@router.get("/leaves")
+def get_all_leaves(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_management)
+):
+    from app.models.erp_academic import LeaveRequest
+    from app.models.profiles import StudentProfile
+    
+    results = db.query(LeaveRequest, StudentProfile).join(
+        StudentProfile, LeaveRequest.student_id == StudentProfile.id
+    ).filter(
+        LeaveRequest.tenant_id == current_user.tenant_id
+    ).all()
+    
+    data = []
+    for leave, student in results:
+        data.append({
+            "id": leave.id,
+            "student_id": student.id,
+            "student_name": student.name,
+            "start_date": leave.start_date,
+            "end_date": leave.end_date,
+            "reason": leave.reason,
+            "status": leave.status,
+            "created_at": leave.created_at
+        })
+    return {"status": "success", "data": data}
+
+@router.put("/leaves/{id}/status")
+def update_leave_status(
+    id: int,
+    request: LeaveStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_management)
+):
+    from app.models.erp_academic import LeaveRequest
+    leave = db.query(LeaveRequest).filter(LeaveRequest.id == id, LeaveRequest.tenant_id == current_user.tenant_id).first()
+    if not leave:
+        raise HTTPException(status_code=404, detail="Leave not found")
+    
+    leave.status = request.status
+    db.commit()
+    return {"status": "success", "message": f"Leave status updated to {request.status}"}
+
+@router.post("/student/{student_id}/documents")
+def upload_student_document(
+    student_id: int,
+    request: DocumentUploadRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_management)
+):
+    from app.models.erp_academic import StudentDocument
+    doc = StudentDocument(
+        tenant_id=current_user.tenant_id,
+        student_id=student_id,
+        title=request.title,
+        category=request.category,
+        file_url=request.file_url
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+    return {"status": "success", "data": {"id": doc.id}}

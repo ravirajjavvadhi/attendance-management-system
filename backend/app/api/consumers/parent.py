@@ -191,3 +191,101 @@ def get_parent_profile(
             "students": linked_students
         }
     }
+
+class LeaveRequestCreate(BaseModel):
+    student_id: int
+    start_date: date
+    end_date: date
+    reason: str
+
+@router.post("/leaves")
+def create_leave_request(
+    request: LeaveRequestCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from app.models.erp_academic import LeaveRequest
+    leave = LeaveRequest(
+        tenant_id=current_user.tenant_id,
+        student_id=request.student_id,
+        start_date=request.start_date,
+        end_date=request.end_date,
+        reason=request.reason
+    )
+    db.add(leave)
+    db.commit()
+    db.refresh(leave)
+    return {"status": "success", "data": {"id": leave.id}}
+
+@router.get("/leaves")
+def list_leave_requests(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from app.models.erp_academic import LeaveRequest
+    leaves = db.query(LeaveRequest).filter(
+        LeaveRequest.tenant_id == current_user.tenant_id,
+        LeaveRequest.student_id == student_id
+    ).all()
+    return {"status": "success", "data": leaves}
+
+@router.get("/documents")
+def list_student_documents(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from app.models.erp_academic import StudentDocument
+    docs = db.query(StudentDocument).filter(
+        StudentDocument.tenant_id == current_user.tenant_id,
+        StudentDocument.student_id == student_id
+    ).all()
+    return {"status": "success", "data": docs}
+
+@router.get("/faculty")
+def get_faculty_list(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from app.models.profiles import StudentProfile
+    from app.models.erp_academic import FacultySubjectAllocation, Subject
+    from app.models.user import User as UserModel
+    
+    student = db.query(StudentProfile).filter(StudentProfile.id == student_id).first()
+    if not student or not student.section_id:
+        return {"status": "success", "data": []}
+        
+    allocations = db.query(FacultySubjectAllocation).filter(
+        FacultySubjectAllocation.section_id == student.section_id
+    ).all()
+    
+    results = []
+    for alloc in allocations:
+        subject = db.query(Subject).filter(Subject.id == alloc.subject_id).first()
+        faculty = db.query(UserModel).filter(UserModel.id == alloc.faculty_user_id).first()
+        if subject and faculty:
+            results.append({
+                "subject_name": subject.name,
+                "faculty_name": faculty.full_name,
+                "email": faculty.email,
+                "phone": faculty.mobile_number
+            })
+    return {"status": "success", "data": results}
+
+@router.get("/fees/balance")
+def get_fees_balance(
+    student_id: int,
+    current_user: User = Depends(get_current_user)
+):
+    return {
+        "status": "success",
+        "data": {
+            "total_due": 1200,
+            "breakdown": {
+                "Tuition": 1000,
+                "Transport": 200
+            }
+        }
+    }

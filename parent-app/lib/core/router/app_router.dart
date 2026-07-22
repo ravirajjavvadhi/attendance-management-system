@@ -7,6 +7,9 @@ import '../../features/home/presentation/screens/home_dashboard_screen.dart';
 import '../../features/home/presentation/screens/settings_screen.dart';
 import '../../features/home/presentation/screens/documents_screen.dart';
 import '../../features/notifications/presentation/screens/notification_center_screen.dart';
+import '../../features/home/presentation/screens/leave_request_screen.dart';
+import '../../features/home/presentation/screens/contact_faculty_screen.dart';
+import '../../features/home/presentation/screens/fee_payment_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -49,6 +52,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/documents',
         name: 'documents',
         builder: (context, state) => const DocumentsScreen(),
+      ),
+      GoRoute(
+        path: '/leave-request',
+        name: 'leave_request',
+        builder: (context, state) => const LeaveRequestScreen(),
+      ),
+      GoRoute(
+        path: '/contact-faculty',
+        name: 'contact_faculty',
+        builder: (context, state) => const ContactFacultyScreen(),
+      ),
+      GoRoute(
+        path: '/pay-fees',
+        name: 'pay_fees',
+        builder: (context, state) => const FeePaymentScreen(),
       ),
     ],
   );

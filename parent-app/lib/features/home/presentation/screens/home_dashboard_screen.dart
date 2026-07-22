@@ -195,10 +195,10 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                     spacing: 12,
                     runSpacing: 12,
                     children: [
-                      _QuickActionChip(icon: Icons.edit_document, label: 'Leave Request'),
-                      _QuickActionChip(icon: Icons.payments, label: 'Pay Fees'),
-                      _QuickActionChip(icon: Icons.download, label: 'Documents', onTap: () => context.go('/documents')),
-                      _QuickActionChip(icon: Icons.chat, label: 'Contact Faculty'),
+                      _QuickActionChip(icon: Icons.edit_document, label: 'Leave Request', onTap: () => context.push('/leave-request')),
+                      _QuickActionChip(icon: Icons.payments, label: 'Pay Fees', onTap: () => context.push('/pay-fees')),
+                      _QuickActionChip(icon: Icons.download, label: 'Documents', onTap: () => context.push('/documents')),
+                      _QuickActionChip(icon: Icons.chat, label: 'Contact Faculty', onTap: () => context.push('/contact-faculty')),
                     ],
                   ),
 
