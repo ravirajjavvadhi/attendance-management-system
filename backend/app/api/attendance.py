@@ -142,6 +142,28 @@ def submit_attendance(
     # Process the attendance list
     absent_student_ids = []
     
+    # Pre-fetch subject_id based on Timetable for this section and period
+    subject_id = None
+    if attendance_data.period is not None:
+        from app.models.erp_academic import Timetable, Period
+        from zoneinfo import ZoneInfo
+        from datetime import datetime
+        
+        ist = ZoneInfo('Asia/Kolkata')
+        day_name = datetime.now(ist).strftime("%A").upper()
+        
+        # We need period_id
+        period = db.query(Period).filter(Period.period_number == attendance_data.period).first()
+        if period:
+            tt = db.query(Timetable).filter(
+                Timetable.section_id == attendance_data.section_id,
+                Timetable.period_id == period.id,
+                Timetable.day_of_week == day_name
+            ).first()
+            if tt:
+                subject_id = tt.subject_id
+    
+    
     for record in attendance_data.records:
         # Check if already exists for this date/student/period
         query = db.query(AttendanceRecord).filter(
@@ -156,6 +178,8 @@ def submit_attendance(
         if db_record:
             db_record.is_present = record.is_present
             db_record.marked_by = current_faculty.id
+            if subject_id:
+                db_record.subject_id = subject_id
         else:
             new_record = AttendanceRecord(
                 tenant_id=current_faculty.tenant_id,
@@ -163,6 +187,7 @@ def submit_attendance(
                 section_id=attendance_data.section_id,
                 date=attendance_data.date,
                 period=attendance_data.period,
+                subject_id=subject_id,
                 is_present=record.is_present,
                 marked_by=current_faculty.id
             )

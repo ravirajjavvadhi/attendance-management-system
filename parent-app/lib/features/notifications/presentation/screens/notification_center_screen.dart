@@ -2,42 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eduflow_core/eduflow_core.dart';
 import 'package:go_router/go_router.dart';
+import 'package:parent_app/features/home/presentation/screens/home_dashboard_screen.dart';
 
 class NotificationCenterScreen extends ConsumerWidget {
   const NotificationCenterScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // In a real implementation, we'd watch a provider for notifications.
-    // For now, we fetch from the dashboard provider or mock them if empty.
-    
-    // We'll use mock data to demonstrate the premium UI.
-    final notifications = [
-      {
-        "id": 1,
-        "title": "Attendance Alert",
-        "message": "Absent Alert: AFTAR (24AG1A05J4) was absent for Physics (Period 1) on 2026-07-20.",
-        "date": "2026-07-20 09:15",
-        "type": "ATTENDANCE",
-        "isRead": false,
-      },
-      {
-        "id": 2,
-        "title": "Fee Reminder",
-        "message": "Semester 2 fees are due by 2026-08-01. Please pay to avoid late fees.",
-        "date": "2026-07-15 10:00",
-        "type": "FEES",
-        "isRead": true,
-      },
-      {
-        "id": 3,
-        "title": "New Assignment",
-        "message": "Calculus Assignment 1 has been posted by Dr. Kumar.",
-        "date": "2026-07-14 14:30",
-        "type": "ACADEMIC",
-        "isRead": true,
-      }
-    ];
+    final dashboardAsync = ref.watch(parentDashboardProvider);
+
+    return dashboardAsync.when(
+      loading: () => Scaffold(
+        appBar: AppBar(title: const Text('Notification Center')),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, st) => Scaffold(
+        appBar: AppBar(title: const Text('Notification Center')),
+        body: Center(child: Text('Error: $e')),
+      ),
+      data: (data) {
+        final List<dynamic> rawNotifs = data['notifications'] ?? [];
+        final notifications = rawNotifs.map((e) => e as Map<String, dynamic>).toList();
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -74,10 +59,12 @@ class NotificationCenterScreen extends ConsumerWidget {
                 ],
               ),
             ),
+            ),
           ],
         ),
       ),
     );
+    });
   }
 }
 

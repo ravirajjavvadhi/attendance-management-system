@@ -178,10 +178,20 @@ class DashboardEngine:
         }
 
         # Fetch Real Notifications (For Parents)
-        # Note: If called from management, we can return the student's primary parent's notifications
-        # But for now, we just fetch global system alerts or we can leave it empty if we don't have the parent context.
-        # We will mock the notifications for the mega payload if no context is provided.
+        timeline_events = db.query(TimelineEvent).filter(
+            TimelineEvent.user_id == student.user_id
+        ).order_by(TimelineEvent.timestamp.desc()).limit(15).all()
+        
         notifications_list = []
+        for e in timeline_events:
+            notifications_list.append({
+                "id": e.id,
+                "title": "Student Update",
+                "message": f"[{e.event_type}] {e.description}",
+                "date": e.timestamp.strftime("%Y-%m-%d %H:%M"),
+                "type": "ACADEMIC",
+                "isRead": False
+            })
 
         return {
             "studentStatus": {
