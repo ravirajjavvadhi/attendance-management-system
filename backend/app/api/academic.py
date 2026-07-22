@@ -420,3 +420,45 @@ def add_faculty_remark(
     db.commit()
     db.refresh(remark)
     return remark
+
+@router.get("/faculty/live-class", status_code=status.HTTP_200_OK)
+def get_faculty_live_class(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_management_or_faculty)
+):
+    from app.models.academic import Timetable, Period
+    import pytz
+    from datetime import datetime
+    
+    ist = pytz.timezone('Asia/Kolkata')
+    now_ist = datetime.now(ist)
+    day_name = now_ist.strftime("%A").upper()
+    now_time = now_ist.time()
+    
+    # Get all timetable entries for this faculty for today
+    tt_entries = db.query(Timetable).filter(
+        Timetable.faculty_user_id == current_user.id,
+        Timetable.day_of_week == day_name
+    ).all()
+    
+    for tt in tt_entries:
+        period = db.query(Period).filter(Period.id == tt.period_id).first()
+        if period and period.start_time and period.end_time:
+            # We add a 10 minute buffer before class starts so they can prepare attendance
+            # and a 10 minute buffer after it ends
+            from datetime import timedelta, date, time
+            
+            # Combine with a dummy date to do timedelta math
+            dummy_date = date(2000, 1, 1)
+            start_dt = datetime.combine(dummy_date, period.start_time) - timedelta(minutes=10)
+            end_dt = datetime.combine(dummy_date, period.end_time) + timedelta(minutes=10)
+            now_dt = datetime.combine(dummy_date, now_time)
+            
+            if start_dt.time() <= now_dt.time() <= end_dt.time():
+                return {
+                    "live": True,
+                    "section_id": tt.section_id,
+                    "period_number": period.period_number
+                }
+                
+    return {"live": False}

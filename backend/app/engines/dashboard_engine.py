@@ -54,23 +54,29 @@ class DashboardEngine:
             cgpa = cgpa if cgpa > 0 else 0.0
             credits = credits if credits > 0 else 0
 
-        # 3. Timeline Engine
-        events = db.query(TimelineEvent).filter(
-            TimelineEvent.user_id == student.user_id if student.user_id else False,
-            func.date(TimelineEvent.timestamp) == date_cls.today()
-        ).order_by(TimelineEvent.timestamp.asc()).all()
+        # Timeline Engine & Real Timetable for Today
+        import pytz
+        ist = pytz.timezone('Asia/Kolkata')
+        now_ist = datetime.now(ist)
+        day_name = now_ist.strftime("%A").upper()
+        today_date = now_ist.date()
+        now_time = now_ist.time()
+
+        tt_entries = db.query(Timetable).filter(Timetable.section_id == student.section_id, Timetable.day_of_week == day_name).all()
+        def get_period_sort_key(e):
+            period = db.query(Period).filter(Period.id == e.period_id).first()
+            if period and period.start_time:
+                return str(period.start_time)
+            return "23:59:59"
+            
+        tt_entries = sorted(tt_entries, key=get_period_sort_key)
         
-        timeline = [
-            {
-                "time": e.timestamp.strftime("%I:%M %p"),
-                "title": e.event_type,
-                "description": e.description,
-                "type": e.event_type
-            } for e in events
-        ]
-        
-        if not timeline:
-            timeline = []
+        # Fetch today's attendance
+        attendance_today = db.query(AttendanceRecord).filter(
+            AttendanceRecord.student_id == student.id,
+            AttendanceRecord.date == today_date
+        ).all()
+        attendance_map = {att.period: att for att in attendance_today if att.period is not None}
 
         # 4. Faculty Comments
         comments_db = db.query(FacultyComment).filter(FacultyComment.student_id == student.id).order_by(FacultyComment.id.desc()).limit(5).all()
@@ -91,21 +97,11 @@ class DashboardEngine:
         if not faculty_comments:
             faculty_comments = []
 
-        # Fetch Real Timetable for Today
-        day_name = datetime.now().strftime("%A").upper()
-        tt_entries = db.query(Timetable).filter(Timetable.section_id == student.section_id, Timetable.day_of_week == day_name).all()
-        def get_period_sort_key(e):
-            period = db.query(Period).filter(Period.id == e.period_id).first()
-            if period and period.start_time:
-                return str(period.start_time)
-            return "23:59:59"
-            
-        tt_entries = sorted(tt_entries, key=get_period_sort_key)
-        
         current_class_info = {"status": "FREE", "subject": "No class", "faculty": "", "room": ""}
-        now_time = datetime.now().time()
         
         today_timetable = []
+        timeline = []
+
         for tt in tt_entries:
             subject = db.query(Subject).filter(Subject.id == tt.subject_id).first()
             period = db.query(Period).filter(Period.id == tt.period_id).first()
@@ -116,6 +112,7 @@ class DashboardEngine:
                 faculty_name = fac_prof.name if (fac_prof and fac_prof.name) else (faculty.email or "Unknown")
             
             if subject and period:
+                # Timetable status
                 status = "UPCOMING"
                 if period.start_time <= now_time <= period.end_time:
                     status = "LIVE NOW"
@@ -134,6 +131,40 @@ class DashboardEngine:
                     "subject": subject.name,
                     "faculty": faculty_name,
                     "status": status
+                })
+
+                # Timeline auto-generation
+                att_record = attendance_map.get(period.period_number)
+                
+                timeline_title = ""
+                timeline_desc = ""
+                timeline_type = "academic"
+                
+                if att_record:
+                    timeline_title = f"{subject.name} (Period {period.period_number})"
+                    if att_record.is_present:
+                        timeline_desc = f"Marked Present by {faculty_name}"
+                        timeline_type = "attendance_present"
+                    else:
+                        timeline_desc = f"Marked Absent by {faculty_name}"
+                        timeline_type = "attendance_absent"
+                else:
+                    timeline_title = f"{subject.name} (Period {period.period_number})"
+                    if status == "COMPLETED":
+                        timeline_desc = "Attendance Pending"
+                        timeline_type = "academic"
+                    elif status == "LIVE NOW":
+                        timeline_desc = "Class is Live"
+                        timeline_type = "academic"
+                    else:
+                        timeline_desc = "Upcoming"
+                        timeline_type = "academic"
+
+                timeline.append({
+                    "time": period.start_time.strftime("%I:%M %p"),
+                    "title": timeline_title,
+                    "description": timeline_desc,
+                    "type": timeline_type
                 })
 
         # AI Insight Logic

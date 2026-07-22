@@ -45,7 +45,26 @@ export default function FacultyDashboard() {
         if (res.ok) {
           const data = await res.json();
           setSections(data);
-          if (data.length > 0) {
+          
+          let defaultSectionSet = false;
+          // Check for live class
+          try {
+            const liveRes = await fetch(`${baseUrl}/api/v1/academic/faculty/live-class`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (liveRes.ok) {
+              const liveData = await liveRes.json();
+              if (liveData.live) {
+                setSelectedSectionId(liveData.section_id.toString());
+                setSelectedPeriod(liveData.period_number.toString());
+                defaultSectionSet = true;
+              }
+            }
+          } catch (e) {
+            console.error("Could not fetch live class", e);
+          }
+
+          if (!defaultSectionSet && data.length > 0) {
             setSelectedSectionId(data[0].id.toString());
           }
         }
