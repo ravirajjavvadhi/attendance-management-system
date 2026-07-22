@@ -229,7 +229,7 @@ export default function StudentManagement() {
     setEditEmail(student.parent_email || "");
   };
 
-  const availableSections = sections.filter(s => s.class_id.toString() === selectedClassId);
+  const availableSections = sections.filter(s => s?.class_id?.toString() === selectedClassId);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
@@ -506,7 +506,7 @@ export default function StudentManagement() {
               onChange={(e) => { setSelectedDeptId(e.target.value); setSelectedClassId(""); setSelectedSectionId(""); }}
               className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 min-w-[150px]"
             >
-              <option value="">1. Select Department</option>
+              <option value="">1. Select Department ({departments.length})</option>
               {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
             
@@ -516,8 +516,8 @@ export default function StudentManagement() {
               disabled={!selectedDeptId}
               className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 min-w-[150px] disabled:opacity-50"
             >
-              <option value="">2. Select Class/Year</option>
-              {classes.filter(c => c.department_id.toString() === selectedDeptId).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              <option value="">2. Select Class/Year ({classes.filter(c => c?.department_id?.toString() === selectedDeptId).length})</option>
+              {classes.filter(c => c?.department_id?.toString() === selectedDeptId).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             
             <select 
@@ -526,8 +526,8 @@ export default function StudentManagement() {
               disabled={!selectedClassId}
               className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 min-w-[150px] disabled:opacity-50"
             >
-              <option value="">3. Select Section</option>
-              {sections.filter(s => s.class_id.toString() === selectedClassId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              <option value="">3. Select Section ({sections.filter(s => s?.class_id?.toString() === selectedClassId).length})</option>
+              {sections.filter(s => s?.class_id?.toString() === selectedClassId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div className="relative max-w-sm w-full">
@@ -572,7 +572,7 @@ export default function StudentManagement() {
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">No students onboarded yet.</td>
                 </tr>
-              ) : students.filter(s => (selectedSectionId ? s.section_id.toString() === selectedSectionId : true) && (s.name.toLowerCase().includes(search.toLowerCase()) || s.roll_number.includes(search))).map((student) => (
+              ) : students.filter(s => (selectedSectionId ? s?.section_id?.toString() === selectedSectionId : true) && ((s.name || "").toLowerCase().includes(search.toLowerCase()) || (s.roll_number || "").includes(search))).map((student) => (
                 <tr key={student.id} className="hover:bg-secondary/30 transition-colors">
                   <td className="px-6 py-4 text-sm font-medium text-muted-foreground">{student.roll_number}</td>
                   <td className="px-6 py-4">
