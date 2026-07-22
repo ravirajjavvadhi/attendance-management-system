@@ -68,7 +68,7 @@ class _FacultyDashboardScreenState extends ConsumerState<FacultyDashboardScreen>
           // Set initial tab to current day
           int todayIndex = days.indexOf(currentDay);
           if (todayIndex != -1) {
-            _tabController.index = todayIndex;
+            _tabController.animateTo(todayIndex);
           }
           
           isLoading = false;
@@ -84,13 +84,26 @@ class _FacultyDashboardScreenState extends ConsumerState<FacultyDashboardScreen>
     }
   }
 
-  void _navigateToAttendance(Map<String, dynamic> classData) {
+  String _calculateTargetDate(String day) {
+    int targetIndex = days.indexOf(day);
+    int currentIndex = days.indexOf(currentDay);
+    if (targetIndex == -1 || currentIndex == -1) {
+      return DateTime.now().toIso8601String().split('T')[0];
+    }
+    
+    int diff = targetIndex - currentIndex;
+    DateTime targetDate = DateTime.now().add(Duration(days: diff));
+    return targetDate.toIso8601String().split('T')[0];
+  }
+
+  void _navigateToAttendance(Map<String, dynamic> classData, String day) {
     context.pushNamed('attendance', extra: {
       'sectionId': classData['section_id'].toString(),
       'periodNumber': classData['period_number'],
       'subjectName': classData['subject_name'],
       'classDetails': '${classData['department_name']} • ${classData['year_name']} • Section ${classData['section_name']}',
       'timeStr': classData['time'],
+      'targetDate': _calculateTargetDate(day),
     });
   }
 
@@ -98,12 +111,16 @@ class _FacultyDashboardScreenState extends ConsumerState<FacultyDashboardScreen>
     if (manualSectionId == null) return;
     final sec = allSections.firstWhere((s) => s['id'].toString() == manualSectionId, orElse: () => {'name': 'Unknown'});
     
+    // For manual override from the currently viewed tab, we use the selected tab's day.
+    String selectedTabDay = days[_tabController.index];
+    
     context.pushNamed('attendance', extra: {
       'sectionId': manualSectionId,
       'periodNumber': manualPeriod,
       'subjectName': 'Manual Override',
       'classDetails': 'Section ${sec['name']}',
       'timeStr': 'Manual Entry',
+      'targetDate': _calculateTargetDate(selectedTabDay),
     });
   }
 
@@ -173,7 +190,7 @@ class _FacultyDashboardScreenState extends ConsumerState<FacultyDashboardScreen>
               ),
             )
           else
-            ...classes.map((cls) => _buildClassCard(cls, isToday)),
+            ...classes.map((cls) => _buildClassCard(cls, isToday, day)),
 
           const SizedBox(height: 32),
           
@@ -242,7 +259,7 @@ class _FacultyDashboardScreenState extends ConsumerState<FacultyDashboardScreen>
     );
   }
 
-  Widget _buildClassCard(Map<String, dynamic> cls, bool isToday) {
+  Widget _buildClassCard(Map<String, dynamic> cls, bool isToday, String day) {
     final bool isLive = cls['is_live'] == true;
     final String status = cls['status'] ?? 'Upcoming';
     
@@ -275,7 +292,7 @@ class _FacultyDashboardScreenState extends ConsumerState<FacultyDashboardScreen>
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => _navigateToAttendance(cls),
+          onTap: () => _navigateToAttendance(cls, day),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(

@@ -10,6 +10,7 @@ class AttendanceTrackingScreen extends ConsumerStatefulWidget {
   final String subjectName;
   final String classDetails;
   final String timeStr;
+  final String targetDate;
 
   const AttendanceTrackingScreen({
     super.key,
@@ -18,6 +19,7 @@ class AttendanceTrackingScreen extends ConsumerStatefulWidget {
     required this.subjectName,
     required this.classDetails,
     required this.timeStr,
+    required this.targetDate,
   });
 
   @override
@@ -41,18 +43,41 @@ class _AttendanceTrackingScreenState extends ConsumerState<AttendanceTrackingScr
       final dio = ref.read(dioClientProvider).dio;
       final response = await dio.get('/academic/students?section_id=${widget.sectionId}');
       final List<dynamic> data = response.data;
+      
+      // Fetch existing status
+      bool hasExisting = false;
+      Map<int, bool> existingRecords = {};
+      try {
+        final statusRes = await dio.get('/attendance/status?section_id=${widget.sectionId}&date=${widget.targetDate}&period=${widget.periodNumber}');
+        if (statusRes.data['marked'] == true) {
+            hasExisting = true;
+            for (var r in statusRes.data['records']) {
+                existingRecords[r['student_id']] = r['is_present'];
+            }
+        }
+      } catch (e) {
+        debugPrint('No existing attendance found: $e');
+      }
+
       if (mounted) {
         setState(() {
           students = data.map((s) {
+            bool isPresent = hasExisting ? (existingRecords[s['id']] ?? false) : true;
             return {
               'id': s['id'],
               'roll_number': s['roll_number'],
               'name': s['name'] == 'Not Provided' ? 'Student' : s['name'],
-              'present': true, // Default to present
+              'present': isPresent,
             };
           }).toList();
           isLoading = false;
         });
+        
+        if (hasExisting && mounted) {
+             ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Attendance already marked. You can edit and resubmit.')),
+             );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -69,7 +94,7 @@ class _AttendanceTrackingScreenState extends ConsumerState<AttendanceTrackingScr
     setState(() => isSubmitting = true);
     try {
       final dio = ref.read(dioClientProvider).dio;
-      final todayStr = DateTime.now().toIso8601String().split('T')[0];
+      final todayStr = widget.targetDate; // Use exact date instead of device's current date
       
       final records = students.map((s) => {
         'student_id': s['id'],

@@ -12,6 +12,41 @@ from app.services.sms import queue_sms
 
 router = APIRouter()
 
+@router.get("/status", status_code=status.HTTP_200_OK)
+def get_attendance_status(
+    section_id: int,
+    date: str,
+    period: int = None,
+    db: Session = Depends(get_db),
+    current_faculty: User = Depends(get_current_faculty)
+):
+    from datetime import datetime
+    try:
+        query_date = datetime.strptime(date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        
+    query = db.query(AttendanceRecord).filter(
+        AttendanceRecord.section_id == section_id,
+        AttendanceRecord.date == query_date
+    )
+    
+    if period is not None:
+        query = query.filter(AttendanceRecord.period == period)
+        
+    records = query.all()
+    
+    if not records:
+        return {"marked": False, "records": []}
+        
+    return {
+        "marked": True,
+        "records": [
+            {"student_id": r.student_id, "is_present": r.is_present}
+            for r in records
+        ]
+    }
+
 @router.get("/stats/today")
 def get_today_stats(
     tenant_id: int = None,
@@ -40,10 +75,11 @@ def get_today_stats(
         .join(Section, StudentProfile.section_id == Section.id) \
         .filter(Section.tenant_id == active_tenant_id).scalar() or 0
         
-    # Attendance for today
+    # Attendance for today (Only Period 1 for Morning Overview)
     attendance_records = db.query(AttendanceRecord).filter(
         AttendanceRecord.tenant_id == active_tenant_id,
-        AttendanceRecord.date == today
+        AttendanceRecord.date == today,
+        AttendanceRecord.period == 1
     ).all()
     
     present_today = sum(1 for r in attendance_records if r.is_present)
@@ -96,31 +132,48 @@ def get_today_stats(
             "time": log.created_at.strftime("%I:%M %p") if log.created_at else ""
         })
 
-    # Section-wise absent counts
-    from app.models.academic import Class
-    section_absent_stats = db.query(
-        Class.name.label("class_name"),
-        Section.name.label("section_name"),
+    # Department-wise morning attendance (Period 1)
+    from app.models.academic import Class, Department
+    
+    # Get all students and their departments
+    all_students_dept = db.query(
+        Department.name,
+        func.count(StudentProfile.id)
+    ).join(Section, StudentProfile.section_id == Section.id) \
+     .join(Class, Section.class_id == Class.id) \
+     .join(Department, Class.department_id == Department.id) \
+     .filter(Section.tenant_id == active_tenant_id) \
+     .group_by(Department.name).all()
+     
+    dept_totals = {name: count for name, count in all_students_dept}
+    
+    # Get present students today for period 1
+    present_dept_stats = db.query(
+        Department.name,
         func.count(AttendanceRecord.id)
     ).join(Section, AttendanceRecord.section_id == Section.id) \
-     .outerjoin(Class, Section.class_id == Class.id) \
+     .join(Class, Section.class_id == Class.id) \
+     .join(Department, Class.department_id == Department.id) \
      .filter(
         Section.tenant_id == active_tenant_id,
         AttendanceRecord.date == today,
-        AttendanceRecord.is_present == False
-    ).group_by(Class.name, Section.name).all()
+        AttendanceRecord.period == 1,
+        AttendanceRecord.is_present == True
+    ).group_by(Department.name).all()
     
-    section_absent_counts = []
-    for cls_name, sec_name, count in section_absent_stats:
-        # Format the name based on whether class exists
-        name = f"{cls_name}-{sec_name}" if cls_name else sec_name
-        section_absent_counts.append({
-            "section": name,
-            "absent": count
+    dept_presents = {name: count for name, count in present_dept_stats}
+    
+    department_overview = []
+    for dept_name, total in dept_totals.items():
+        present = dept_presents.get(dept_name, 0)
+        department_overview.append({
+            "department": dept_name,
+            "present": present,
+            "total": total,
+            "rate": round((present / total * 100), 1) if total > 0 else 0
         })
         
-    # Sort descending by absent count
-    section_absent_counts.sort(key=lambda x: x["absent"], reverse=True)
+    department_overview.sort(key=lambda x: x["rate"])
 
     return {
         "total_students": total_students,
@@ -129,7 +182,7 @@ def get_today_stats(
         "attendance_rate": f"{(present_today / total_students * 100):.1f}%" if total_students > 0 else "0%",
         "alerts": alerts[:5], # top 5 lowest
         "notifications": notifications,
-        "section_absent_counts": section_absent_counts
+        "department_overview": department_overview
     }
 
 @router.post("/submit")
@@ -155,13 +208,23 @@ def submit_attendance(
         # We need period_id
         period = db.query(Period).filter(Period.period_number == attendance_data.period).first()
         if period:
+            # Note: We must use the exact day of the target date, NOT today's date!
+            target_date_obj = datetime.strptime(attendance_data.date, "%Y-%m-%d").date()
+            target_day_name = target_date_obj.strftime("%A").upper()
             tt = db.query(Timetable).filter(
                 Timetable.section_id == attendance_data.section_id,
                 Timetable.period_id == period.id,
-                Timetable.day_of_week == day_name
+                Timetable.day_of_week == target_day_name
             ).first()
             if tt:
                 subject_id = tt.subject_id
+                
+    subject_name = "Class"
+    if subject_id:
+        from app.models.erp_academic import Subject
+        subj = db.query(Subject).filter(Subject.id == subject_id).first()
+        if subj:
+            subject_name = subj.name
     
     
     for record in attendance_data.records:
@@ -209,6 +272,28 @@ def submit_attendance(
 
         if not record.is_present:
             absent_student_ids.append(record.student_id)
+            
+            # Send Notification to Parent!
+            if student_prof and student_prof.user_id:
+                from app.models.notification import NotificationLog
+                from app.models.profiles import ParentStudentLink, ParentProfile
+                
+                # Find parent
+                link = db.query(ParentStudentLink).filter(ParentStudentLink.student_id == student_prof.id).first()
+                if link:
+                    parent = db.query(ParentProfile).filter(ParentProfile.id == link.parent_id).first()
+                    if parent:
+                        parent_user = db.query(User).filter(User.id == parent.user_id).first()
+                        if parent_user:
+                            # Create NotificationLog for the parent
+                            notif = NotificationLog(
+                                tenant_id=current_faculty.tenant_id,
+                                channel="PUSH",
+                                recipient=parent_user.email or parent_user.mobile_number,
+                                status="SENT",
+                                message=f"Your child {student_prof.name} was marked ABSENT for {subject_name} on {attendance_data.date} (Period {attendance_data.period})."
+                            )
+                            db.add(notif)
             
     db.commit()
     

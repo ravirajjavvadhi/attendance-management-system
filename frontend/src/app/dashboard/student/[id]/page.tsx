@@ -169,7 +169,7 @@ export default function StudentDashboard({ params }: { params: Promise<{ id: str
       </div>
 
       {/* Detailed Subject Attendance */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8">
         <h2 className="text-slate-200 font-semibold tracking-wide text-sm uppercase mb-6">Subject-Wise Attendance</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-400">
@@ -204,6 +204,30 @@ export default function StudentDashboard({ params }: { params: Promise<{ id: str
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+      
+      {/* Daily Attendance Log */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <h2 className="text-slate-200 font-semibold tracking-wide text-sm uppercase mb-6">Day-by-Day Attendance (Morning)</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            {payload.dailyAttendanceLog && payload.dailyAttendanceLog.map((log: any, idx: number) => (
+                <div key={idx} className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center ${
+                    log.status === "Present" 
+                    ? "bg-emerald-500/5 border-emerald-500/20" 
+                    : "bg-red-500/5 border-red-500/20"
+                }`}>
+                    <span className="text-xs text-slate-400 mb-2">{log.date}</span>
+                    <span className={`font-semibold text-sm ${log.status === "Present" ? "text-emerald-400" : "text-red-400"}`}>
+                        {log.status}
+                    </span>
+                </div>
+            ))}
+            {(!payload.dailyAttendanceLog || payload.dailyAttendanceLog.length === 0) && (
+                <div className="col-span-full py-8 text-center text-slate-500 text-sm">
+                    No daily attendance records found.
+                </div>
+            )}
         </div>
       </div>
     </div>

@@ -176,6 +176,19 @@ class DashboardEngine:
             "message": insight_text,
             "score": "N/A"
         }
+        
+        # Day-by-Day Attendance Log
+        daily_records = db.query(AttendanceRecord).filter(
+            AttendanceRecord.student_id == student.id,
+            AttendanceRecord.period == 1 # Use period 1 as the daily indicator
+        ).order_by(AttendanceRecord.date.desc()).limit(14).all()
+        
+        daily_attendance_log = []
+        for r in daily_records:
+            daily_attendance_log.append({
+                "date": r.date.strftime("%Y-%m-%d"),
+                "status": "Present" if r.is_present else "Absent"
+            })
 
         # Fetch Real Notifications (For Parents)
         timeline_events = db.query(TimelineEvent).filter(
@@ -212,6 +225,7 @@ class DashboardEngine:
             "timeline": timeline,
             "academicPerformance": academic_performance,
             "subjectWiseAttendance": attendance_report,
+            "dailyAttendanceLog": daily_attendance_log,
             "aiInsights": ai_insights,
             "notifications": notifications_list,
             "facultyComments": faculty_comments,

@@ -15,7 +15,7 @@ export default function PrincipalDashboard() {
     attendance_rate: "0%",
     alerts: [],
     notifications: [],
-    section_absent_counts: []
+    department_overview: []
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -125,20 +125,20 @@ export default function PrincipalDashboard() {
             {/* Attendance Today Section */}
             <div className="bg-card border rounded-xl shadow-sm overflow-hidden flex flex-col">
               <div className="px-6 py-5 border-b border-border">
-                <h2 className="text-lg font-semibold">Attendance Today</h2>
+                <h2 className="text-lg font-semibold">Morning Attendance (by Dept)</h2>
               </div>
               <div className="p-6">
-                {!stats.section_absent_counts || stats.section_absent_counts.length === 0 ? (
+                {!stats.department_overview || stats.department_overview.length === 0 ? (
                   <div className="text-center text-muted-foreground text-sm py-8">
-                    No absentees reported yet today.
+                    No department data available.
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {stats.section_absent_counts.map((item: any, i: number) => (
+                    {stats.department_overview.map((item: any, i: number) => (
                       <div key={i} className="flex justify-between items-center border-b border-border pb-3 last:border-0 last:pb-0">
-                        <span className="font-medium text-foreground">{item.section}</span>
-                        <span className="text-red-500 font-semibold bg-red-500/10 px-3 py-1 rounded-full text-xs">
-                          {item.absent} Absent
+                        <span className="font-medium text-foreground">{item.department}</span>
+                        <span className={`font-semibold px-3 py-1 rounded-full text-xs ${item.rate < 75 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                          {item.present} / {item.total} ({item.rate}%)
                         </span>
                       </div>
                     ))}

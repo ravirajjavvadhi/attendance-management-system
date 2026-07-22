@@ -36,6 +36,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             subjectName: extras['subjectName']?.toString() ?? 'Subject',
             classDetails: extras['classDetails']?.toString() ?? 'Details',
             timeStr: extras['timeStr']?.toString() ?? 'Time',
+            targetDate: extras['targetDate']?.toString() ?? DateTime.now().toIso8601String().split('T')[0],
           );
         },
       ),

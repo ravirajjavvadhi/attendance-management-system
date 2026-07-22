@@ -364,8 +364,9 @@ class _TimelineItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Color dotColor = const Color(0xFF2563EB);
-    if (type.contains('ABSENT')) dotColor = const Color(0xFFEF4444);
-    if (type.contains('PRESENT')) dotColor = const Color(0xFF10B981);
+    String upperType = type.toUpperCase();
+    if (upperType.contains('ABSENT')) dotColor = const Color(0xFFEF4444);
+    if (upperType.contains('PRESENT')) dotColor = const Color(0xFF10B981);
 
     return IntrinsicHeight(
       child: Row(
