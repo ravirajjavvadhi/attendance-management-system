@@ -175,6 +175,7 @@ def submit_attendance(
             event_type = "ATTENDANCE_PRESENT" if record.is_present else "ATTENDANCE_ABSENT"
             desc = "Marked Present" if record.is_present else "Marked Absent"
             t_event = TimelineEvent(
+                tenant_id=current_faculty.tenant_id,
                 user_id=student_prof.user_id,
                 event_type=event_type,
                 description=desc

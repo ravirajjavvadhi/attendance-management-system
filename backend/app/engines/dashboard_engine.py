@@ -151,8 +151,8 @@ class DashboardEngine:
                 else:
                     timeline_title = f"{subject.name} (Period {period.period_number})"
                     if status == "COMPLETED":
-                        timeline_desc = "Attendance Pending"
-                        timeline_type = "academic"
+                        timeline_desc = "Auto-Marked Present"
+                        timeline_type = "attendance_present"
                     elif status == "LIVE NOW":
                         timeline_desc = "Class is Live"
                         timeline_type = "academic"
