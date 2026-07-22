@@ -62,7 +62,7 @@ class AIEngine:
         # Check if insight already exists for today
         existing_insight = db.query(StudentAIInsight).filter(
             StudentAIInsight.student_id == student_id,
-            func.date(StudentAIInsight.created_at) == today
+            func.date(StudentAIInsight.date) == today
         ).first()
         
         if existing_insight:
