@@ -29,10 +29,29 @@ class _FacultyDashboardScreenState extends ConsumerState<FacultyDashboardScreen>
       final dio = ref.read(dioClientProvider).dio;
       final response = await dio.get('/academic/sections');
       final List<dynamic> data = response.data;
+      
+      bool defaultSectionSet = false;
+      String? targetSectionId;
+      int targetPeriod = 1;
+      
+      try {
+        final liveRes = await dio.get('/academic/faculty/live-class');
+        if (liveRes.data != null && liveRes.data['live'] == true) {
+          targetSectionId = liveRes.data['section_id'].toString();
+          targetPeriod = liveRes.data['period_number'];
+          defaultSectionSet = true;
+        }
+      } catch (e) {
+        debugPrint('Could not fetch live class: $e');
+      }
+      
       if (mounted) {
         setState(() {
           sections = data;
-          if (data.isNotEmpty) {
+          if (defaultSectionSet) {
+            selectedSectionId = targetSectionId;
+            selectedPeriod = targetPeriod;
+          } else if (data.isNotEmpty) {
             selectedSectionId = data[0]['id'].toString();
           }
         });
