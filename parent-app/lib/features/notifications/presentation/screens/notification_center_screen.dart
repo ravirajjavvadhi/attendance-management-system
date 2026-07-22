@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eduflow_core/eduflow_core.dart';
 import 'package:go_router/go_router.dart';
-import 'package:parent_app/features/home/presentation/screens/home_dashboard_screen.dart';
+import 'package:eduflow_parent/features/home/presentation/screens/home_dashboard_screen.dart';
 
 class NotificationCenterScreen extends ConsumerWidget {
   const NotificationCenterScreen({super.key});
@@ -58,7 +58,6 @@ class NotificationCenterScreen extends ConsumerWidget {
                   _NotificationList(notifications: notifications.where((n) => n['type'] == 'ACADEMIC').toList()),
                 ],
               ),
-            ),
             ),
           ],
         ),
