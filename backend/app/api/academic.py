@@ -455,10 +455,25 @@ def get_faculty_live_class(
             now_dt = datetime.combine(dummy_date, now_time)
             
             if start_dt.time() <= now_dt.time() <= end_dt.time():
-                return {
-                    "live": True,
-                    "section_id": tt.section_id,
-                    "period_number": period.period_number
-                }
+                from app.models.academic import Section, Year, Department
+                section = db.query(Section).filter(Section.id == tt.section_id).first()
+                if section:
+                    year = db.query(Year).filter(Year.id == section.year_id).first()
+                    department = db.query(Department).filter(Department.id == year.department_id).first() if year else None
+                    
+                    return {
+                        "live": True,
+                        "section_id": tt.section_id,
+                        "period_number": period.period_number,
+                        "section_name": section.name,
+                        "year_name": year.name if year else "",
+                        "department_name": department.name if department else ""
+                    }
+                else:
+                    return {
+                        "live": True,
+                        "section_id": tt.section_id,
+                        "period_number": period.period_number
+                    }
                 
     return {"live": False}

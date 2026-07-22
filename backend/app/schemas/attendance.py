@@ -9,6 +9,7 @@ class AttendanceRecordBase(BaseModel):
 class AttendanceSubmit(BaseModel):
     section_id: int
     date: date
+    period: int = None
     records: List[AttendanceRecordBase]
 
 class SmartAttendanceSubmit(BaseModel):

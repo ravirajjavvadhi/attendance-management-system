@@ -143,11 +143,15 @@ def submit_attendance(
     absent_student_ids = []
     
     for record in attendance_data.records:
-        # Check if already exists for this date/student
-        db_record = db.query(AttendanceRecord).filter(
+        # Check if already exists for this date/student/period
+        query = db.query(AttendanceRecord).filter(
             AttendanceRecord.student_id == record.student_id,
             AttendanceRecord.date == attendance_data.date
-        ).first()
+        )
+        if attendance_data.period is not None:
+            query = query.filter(AttendanceRecord.period == attendance_data.period)
+        
+        db_record = query.first()
         
         if db_record:
             db_record.is_present = record.is_present
@@ -158,6 +162,7 @@ def submit_attendance(
                 student_id=record.student_id,
                 section_id=attendance_data.section_id,
                 date=attendance_data.date,
+                period=attendance_data.period,
                 is_present=record.is_present,
                 marked_by=current_faculty.id
             )

@@ -17,6 +17,12 @@ class _FacultyDashboardScreenState extends ConsumerState<FacultyDashboardScreen>
   List<dynamic> students = [];
   bool isLoading = true;
   bool isSubmitting = false;
+  
+  // Live Class info
+  bool isLiveClassActive = false;
+  String? liveDepartmentName;
+  String? liveYearName;
+  String? liveSectionName;
 
   @override
   void initState() {
@@ -40,9 +46,21 @@ class _FacultyDashboardScreenState extends ConsumerState<FacultyDashboardScreen>
           targetSectionId = liveRes.data['section_id'].toString();
           targetPeriod = liveRes.data['period_number'];
           defaultSectionSet = true;
+          
+          if (mounted) {
+            setState(() {
+              isLiveClassActive = true;
+              liveDepartmentName = liveRes.data['department_name'];
+              liveYearName = liveRes.data['year_name'];
+              liveSectionName = liveRes.data['section_name'];
+            });
+          }
+        } else {
+          if (mounted) setState(() => isLiveClassActive = false);
         }
       } catch (e) {
         debugPrint('Could not fetch live class: $e');
+        if (mounted) setState(() => isLiveClassActive = false);
       }
       
       if (mounted) {
@@ -116,6 +134,7 @@ class _FacultyDashboardScreenState extends ConsumerState<FacultyDashboardScreen>
       await dio.post('/attendance/submit', data: {
         'section_id': int.parse(selectedSectionId!),
         'date': todayStr,
+        'period': selectedPeriod,
         'records': records,
       });
 
@@ -152,6 +171,31 @@ class _FacultyDashboardScreenState extends ConsumerState<FacultyDashboardScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (isLiveClassActive)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.blue),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Live Class Auto-Selected:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                          Text('$liveDepartmentName • $liveYearName • Sec $liveSectionName (Period $selectedPeriod)', style: const TextStyle(color: Colors.blueGrey)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             // Dropdowns for Section and Period selection
             Row(
               children: [
