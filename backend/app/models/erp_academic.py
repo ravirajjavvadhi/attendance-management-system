@@ -1,4 +1,113 @@
-牦浯猠汱污档浥⁹浩潰瑲䌠汯浵Ɱ䤠瑮来牥‬瑓楲杮‬潂汯慥Ɱ䐠瑡呥浩ⱥ䘠牯楥湧敋ⱹ吠浩ⱥ䔠畮੭牦浯猠汱污档浥⁹浩潰瑲䌠汯浵Ɱ䤠瑮来牥‬瑓楲杮‬潂汯慥Ɱ䐠瑡呥浩ⱥ䘠牯楥湧敋ⱹ吠浩ⱥ䔠畮Ɑ䐠瑡੥牦浯猠汱污档浥⹹牯⁭浩潰瑲爠汥瑡潩獮楨ੰ牦浯猠汱污档浥⹹煳⁬浩潰瑲映湵੣牦浯愠灰搮⹢慤慴慢敳椠灭牯⁴慂敳椊灭牯⁴湥浵ਊ汣獡⁳牂湡档䈨獡⥥਺††∢䔢偒䴠摯汥爠灥敲敳瑮湩⁧⁡牂湡档漠⁲牐杯慲⁭攨朮Ⱞ䌠䕓‬⹂潃⥭∢ਢ††彟慴汢湥浡彥 ‽攢灲扟慲据敨≳ †ਠ††摩㴠䌠汯浵⡮湉整敧Ⱳ瀠楲慭祲歟祥吽畲ⱥ椠摮硥吽畲⥥ †琠湥湡彴摩㴠䌠汯浵⡮湉整敧Ⱳ䘠牯楥湧敋⡹椢獮楴畴楴湯⹳摩⤢‬畮汬扡敬䘽污敳਩††敤慰瑲敭瑮楟⁤‽潃畬湭䤨瑮来牥‬潆敲杩䭮祥∨敤慰瑲敭瑮⹳摩⤢‬畮汬扡敬䘽污敳਩††慮敭㴠䌠汯浵⡮瑓楲杮‬畮汬扡敬䘽污敳਩††潣敤㴠䌠汯浵⡮瑓楲杮‬畮汬扡敬吽畲⥥ਊ汣獡⁳敓敭瑳牥䈨獡⥥਺††∢䔢偒䴠摯汥爠灥敲敳瑮湩⁧湡愠慣敤業⁣整浲猯浥獥整≲∢ †张瑟扡敬慮敭彟㴠∠牥彰敳敭瑳牥≳ †ਠ††摩㴠䌠汯浵⡮湉整敧Ⱳ瀠楲慭祲歟祥吽畲ⱥ椠摮硥吽畲⥥ †琠湥湡彴摩㴠䌠汯浵⡮湉整敧Ⱳ䘠牯楥湧敋⡹椢獮楴畴楴湯⹳摩⤢‬畮汬扡敬䘽污敳਩††捡摡浥捩祟慥彲摩㴠䌠汯浵⡮湉整敧Ⱳ䘠牯楥湧敋⡹愢慣敤業彣敹牡⹳摩⤢‬畮汬扡敬䘽污敳਩††牢湡档楟⁤‽潃畬湭䤨瑮来牥‬潆敲杩䭮祥∨牥彰牢湡档獥椮≤Ⱙ渠汵慬汢㵥牔敵਩††慮敭㴠䌠汯浵⡮瑓楲杮‬畮汬扡敬䘽污敳 ‣⹥⹧‬匢浥獥整⁲∱‬吢牥⁭∱ †琠牥彭畮扭牥㴠䌠汯浵⡮湉整敧Ⱳ渠汵慬汢㵥牔敵 ‣ⰱ㈠‬⸳⸮ਊ汣獡⁳畓橢捥⡴慂敳㨩 †∠∢剅⁐潍敤⁬敲牰獥湥楴杮愠猠数楣楦⁣畳橢捥⁴敢湩⁧慴杵瑨∢ਢ††彟慴汢湥浡彥 ‽攢灲獟扵敪瑣≳ †ਠ††摩㴠䌠汯浵⡮湉整敧Ⱳ瀠楲慭祲歟祥吽畲ⱥ椠摮硥吽畲⥥ †琠湥湡彴摩㴠䌠汯浵⡮湉整敧Ⱳ䘠牯楥湧敋⡹椢獮楴畴楴湯⹳摩⤢‬畮汬扡敬䘽污敳਩††牢湡档楟⁤‽潃畬湭䤨瑮来牥‬潆敲杩䭮祥∨牥彰牢湡档獥椮≤Ⱙ渠汵慬汢㵥牔敵਩††敳敭瑳牥楟⁤‽潃畬湭䤨瑮来牥‬潆敲杩䭮祥∨牥彰敳敭瑳牥⹳摩⤢‬畮汬扡敬吽畲⥥ †渠浡⁥‽潃畬湭匨牴湩Ⱨ渠汵慬汢㵥慆獬⥥ †挠摯⁥‽潃畬湭匨牴湩Ⱨ渠汵慬汢㵥牔敵਩††牣摥瑩⁳‽潃畬湭䤨瑮来牥‬畮汬扡敬吽畲ⱥ搠晥畡瑬〽਩††畳橢捥彴祴数㴠䌠汯浵⡮瑓楲杮‬敤慦汵㵴吢䕈剏≙ ‣䡔佅奒‬䅌ੂ††牰牥煥極楳整⁳‽潃畬湭匨牴湩Ⱨ渠汵慬汢㵥牔敵਩††畯捴浯獥㴠䌠汯浵⡮瑓楲杮‬畮汬扡敬吽畲⥥⌠传䕂丯䅂挠浯汰慩据⁥半乏漠⁲瑳楲杮 †椠彳汥捥楴敶㴠䌠汯浵⡮潂汯慥Ɱ搠晥畡瑬䘽污敳਩挊慬獳䘠捡汵祴畓橢捥䅴汬捯瑡潩⡮慂敳㨩 †∠∢慍獰眠楨档映捡汵祴椠⁳整捡楨杮眠楨档猠扵敪瑣琠⁯桷捩⁨敳瑣潩≮∢ †张瑟扡敬慮敭彟㴠∠牥彰慦畣瑬役畳橢捥彴污潬慣楴湯≳ †ਠ††摩㴠䌠汯浵⡮湉整敧Ⱳ瀠楲慭祲歟祥吽畲ⱥ椠摮硥吽畲⥥ †琠湥湡彴摩㴠䌠汯浵⡮湉整敧Ⱳ䘠牯楥湧敋⡹椢獮楴畴楴湯⹳摩⤢‬畮汬扡敬䘽污敳਩††慦畣瑬役獵牥楟⁤‽潃畬湭䤨瑮来牥‬潆敲杩䭮祥∨獵牥⹳摩⤢‬畮汬扡敬䘽污敳਩††畳橢捥彴摩㴠䌠汯浵⡮湉整敧Ⱳ䘠牯楥湧敋⡹攢灲獟扵敪瑣⹳摩⤢‬畮汬扡敬䘽污敳਩††敳瑣潩彮摩㴠䌠汯浵⡮湉整敧Ⱳ䘠牯楥湧敋⡹猢捥楴湯⹳摩⤢‬畮汬扡敬䘽污敳਩††捡摡浥捩祟慥彲摩㴠䌠汯浵⡮湉整敧Ⱳ䘠牯楥湧敋⡹愢慣敤業彣敹牡⹳摩⤢‬畮汬扡敬䘽污敳਩挊慬獳倠牥潩⡤慂敳㨩 †∠∢敄楦敮⁳桴⁥数楲摯⁳湩愠搠祡映牯愠⁮湩瑳瑩瑵潩≮∢ †张瑟扡敬慮敭彟㴠∠牥彰数楲摯≳ †ਠ††摩㴠䌠汯浵⡮湉整敧Ⱳ瀠楲慭祲歟祥吽畲ⱥ椠摮硥吽畲⥥ †琠湥湡彴摩㴠䌠汯浵⡮湉整敧Ⱳ䘠牯楥湧敋⡹椢獮楴畴楴湯⹳摩⤢‬畮汬扡敬䘽污敳਩††慮敭㴠䌠汯浵⡮瑓楲杮‬畮汬扡敬䘽污敳 ‣⹥⹧∠敐楲摯ㄠⰢ∠界据⁨牂慥≫ †瀠牥潩彤畮扭牥㴠䌠汯浵⡮湉整敧Ⱳ渠汵慬汢㵥牔敵 ‣ⰱ㈠‬″渨汵⁬潦⁲牢慥獫਩††瑳牡彴楴敭㴠䌠汯浵⡮楔敭‬畮汬扡敬䘽污敳਩††湥彤楴敭㴠䌠汯浵⡮楔敭‬畮汬扡敬䘽污敳਩††獩扟敲歡㴠䌠汯浵⡮潂汯慥Ɱ搠晥畡瑬䘽污敳਩挊慬獳䐠祡晏敗步湅浵猨牴‬湥浵䔮畮⥭਺††位䑎奁㴠∠位䑎奁ਢ††啔卅䅄⁙‽吢䕕䑓奁ਢ††䕗乄卅䅄⁙‽圢䑅䕎䑓奁ਢ††䡔剕䑓奁㴠∠䡔剕䑓奁ਢ††剆䑉奁㴠∠剆䑉奁ਢ††䅓啔䑒奁㴠∠䅓啔䑒奁ਢ††啓䑎奁㴠∠啓䑎奁ਢ挊慬獳吠浩瑥扡敬䈨獡⥥਺††∢䔢偒吠浩瑥扡敬䴠灡楰杮∢ਢ††彟慴汢湥浡彥 ‽攢灲瑟浩瑥扡敬ਢ†† †椠⁤‽潃畬湭䤨瑮来牥‬牰浩牡役敫㵹牔敵‬湩敤㵸牔敵਩††整慮瑮楟⁤‽潃畬湭䤨瑮来牥‬潆敲杩䭮祥∨湩瑳瑩瑵潩獮椮≤Ⱙ渠汵慬汢㵥慆獬⥥ †愠慣敤業彣敹牡楟⁤‽潃畬湭䤨瑮来牥‬潆敲杩䭮祥∨捡摡浥捩祟慥獲椮≤Ⱙ渠汵慬汢㵥慆獬⥥ †猠捥楴湯楟⁤‽潃畬湭䤨瑮来牥‬潆敲杩䭮祥∨敳瑣潩獮椮≤Ⱙ渠汵慬汢㵥慆獬⥥ †瀠牥潩彤摩㴠䌠汯浵⡮湉整敧Ⱳ䘠牯楥湧敋⡹攢灲灟牥潩獤椮≤Ⱙ渠汵慬汢㵥慆獬⥥ †搠祡潟彦敷步㴠䌠汯浵⡮瑓楲杮‬畮汬扡敬䘽污敳਩††畳橢捥彴摩㴠䌠汯浵⡮湉整敧Ⱳ䘠牯楥湧敋⡹攢灲獟扵敪瑣⹳摩⤢‬畮汬扡敬䘽污敳਩††慦畣瑬役獵牥楟⁤‽潃畬湭䤨瑮来牥‬潆敲杩䭮祥∨獵牥⹳摩⤢‬畮汬扡敬䘽污敳਩††潲浯湟浵敢⁲‽潃畬湭匨牴湩Ⱨ渠汵慬汢㵥牔敵਩挊慬獳匠浥獥整割獥汵⡴慂敳㨩 †张瑟扡敬慮敭彟㴠∠牥彰敳敭瑳牥牟獥汵獴ਢ†† †椠⁤‽潃畬湭䤨瑮来牥‬牰浩牡役敫㵹牔敵‬湩敤㵸牔敵਩††整慮瑮楟⁤‽潃畬湭䤨瑮来牥‬潆敲杩䭮祥∨湩瑳瑩瑵潩獮椮≤Ⱙ渠汵慬汢㵥慆獬⥥ †猠畴敤瑮楟⁤‽潃畬湭䤨瑮来牥‬潆敲杩䭮祥∨瑳摵湥彴牰景汩獥椮≤Ⱙ渠汵慬汢㵥慆獬⥥ †猠浥獥整彲摩㴠䌠汯浵⡮湉整敧Ⱳ䘠牯楥湧敋⡹攢灲獟浥獥整獲椮≤Ⱙ渠汵慬汢㵥慆獬⥥ †猠灧⁡‽潃畬湭䤨瑮来牥‬敤慦汵㵴⤰⌠匠潴敲⁤獡匠假⁁‪〱‰潦⁲牰捥獩潩Ɱ漠⁲汆慯ੴ††牣摥瑩彳慥湲摥㴠䌠汯浵⡮湉整敧Ⱳ搠晥畡瑬〽਩挊慬獳匠扵敪瑣慍歲䈨獡⥥਺††彟慴汢湥浡彥 ‽攢灲獟扵敪瑣浟牡獫ਢ†† †椠⁤‽潃畬湭䤨瑮来牥‬牰浩牡役敫㵹牔敵‬湩敤㵸牔敵਩††整慮瑮楟⁤‽潃畬湭䤨瑮来牥‬潆敲杩䭮祥∨湩瑳瑩瑵潩獮椮≤Ⱙ渠汵慬汢㵥慆獬⥥ †爠獥汵彴摩㴠䌠汯浵⡮湉整敧Ⱳ䘠牯楥湧敋⡹攢灲獟浥獥整彲敲畳瑬⹳摩⤢‬畮汬扡敬䘽污敳਩††畳橢捥彴摩㴠䌠汯浵⡮湉整敧Ⱳ䘠牯楥湧敋⡹攢灲獟扵敪瑣⹳摩⤢‬畮汬扡敬䘽污敳਩††慭歲彳扯慴湩摥㴠䌠汯浵⡮湉整敧Ⱳ搠晥畡瑬〽਩††牧摡⁥‽潃畬湭匨牴湩Ⱨ渠汵慬汢㵥牔敵਩
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Time, Enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Time, Enum, Date
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+from app.db.database import Base
+import enum
+
+class Branch(Base):
+    """ERP Model representing a Branch or Program (e.g., CSE, B.Com)"""
+    __tablename__ = "erp_branches"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
+    name = Column(String, nullable=False)
+    code = Column(String, nullable=True)
+
+class Semester(Base):
+    """ERP Model representing an academic term/semester"""
+    __tablename__ = "erp_semesters"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
+    academic_year_id = Column(Integer, ForeignKey("academic_years.id"), nullable=False)
+    branch_id = Column(Integer, ForeignKey("erp_branches.id"), nullable=True)
+    name = Column(String, nullable=False) # e.g., "Semester 1", "Term 1"
+    term_number = Column(Integer, nullable=True) # 1, 2, 3...
+
+class Subject(Base):
+    """ERP Model representing a specific subject being taught"""
+    __tablename__ = "erp_subjects"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
+    branch_id = Column(Integer, ForeignKey("erp_branches.id"), nullable=True)
+    semester_id = Column(Integer, ForeignKey("erp_semesters.id"), nullable=True)
+    name = Column(String, nullable=False)
+    code = Column(String, nullable=True)
+    credits = Column(Integer, nullable=True, default=0)
+    subject_type = Column(String, default="THEORY") # THEORY, LAB
+    prerequisites = Column(String, nullable=True)
+    outcomes = Column(String, nullable=True) # OBE/NBA compliance JSON or string
+    is_elective = Column(Boolean, default=False)
+
+class FacultySubjectAllocation(Base):
+    """Maps which faculty is teaching which subject to which section"""
+    __tablename__ = "erp_faculty_subject_allocations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
+    faculty_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    subject_id = Column(Integer, ForeignKey("erp_subjects.id"), nullable=False)
+    section_id = Column(Integer, ForeignKey("sections.id"), nullable=False)
+    academic_year_id = Column(Integer, ForeignKey("academic_years.id"), nullable=False)
+
+class Period(Base):
+    """Defines the periods in a day for an institution"""
+    __tablename__ = "erp_periods"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
+    name = Column(String, nullable=False) # e.g. "Period 1", "Lunch Break"
+    period_number = Column(Integer, nullable=True) # 1, 2, 3 (null for breaks)
+    start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=False)
+    is_break = Column(Boolean, default=False)
+
+class DayOfWeekEnum(str, enum.Enum):
+    MONDAY = "MONDAY"
+    TUESDAY = "TUESDAY"
+    WEDNESDAY = "WEDNESDAY"
+    THURSDAY = "THURSDAY"
+    FRIDAY = "FRIDAY"
+    SATURDAY = "SATURDAY"
+    SUNDAY = "SUNDAY"
+
+class Timetable(Base):
+    """ERP Timetable Mapping"""
+    __tablename__ = "erp_timetable"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
+    academic_year_id = Column(Integer, ForeignKey("academic_years.id"), nullable=False)
+    section_id = Column(Integer, ForeignKey("sections.id"), nullable=False)
+    period_id = Column(Integer, ForeignKey("erp_periods.id"), nullable=False)
+    day_of_week = Column(String, nullable=False)
+    subject_id = Column(Integer, ForeignKey("erp_subjects.id"), nullable=False)
+    faculty_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    room_number = Column(String, nullable=True)
+
+class SemesterResult(Base):
+    __tablename__ = "erp_semester_results"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("student_profiles.id"), nullable=False)
+    semester_id = Column(Integer, ForeignKey("erp_semesters.id"), nullable=False)
+    sgpa = Column(Integer, default=0) # Stored as SGPA * 100 for precision, or Float
+    credits_earned = Column(Integer, default=0)
+
+class SubjectMark(Base):
+    __tablename__ = "erp_subject_marks"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("institutions.id"), nullable=False)
+    result_id = Column(Integer, ForeignKey("erp_semester_results.id"), nullable=False)
+    subject_id = Column(Integer, ForeignKey("erp_subjects.id"), nullable=False)
+    marks_obtained = Column(Integer, default=0)
+    grade = Column(String, nullable=True)
+
 class FacultyRemark(Base):
     __tablename__ = 'erp_faculty_remarks'
     id = Column(Integer, primary_key=True, index=True)
@@ -16,3 +125,24 @@ class StudentAIInsight(Base):
     insight_text = Column(String, nullable=False)
     date = Column(DateTime, default=func.current_date())
 
+
+class LeaveRequest(Base):
+    __tablename__ = 'erp_leave_requests'
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey('institutions.id'), nullable=False)
+    student_id = Column(Integer, ForeignKey('student_profiles.id'), nullable=False)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    reason = Column(String, nullable=False)
+    status = Column(String, default='PENDING') # PENDING, APPROVED, REJECTED
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class StudentDocument(Base):
+    __tablename__ = 'erp_student_documents'
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey('institutions.id'), nullable=False)
+    student_id = Column(Integer, ForeignKey('student_profiles.id'), nullable=False)
+    title = Column(String, nullable=False)
+    category = Column(String, nullable=False) # ACADEMIC, FINANCIAL, GENERAL
+    file_url = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
