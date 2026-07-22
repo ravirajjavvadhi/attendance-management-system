@@ -27,7 +27,7 @@ export default function StudentDashboard({ params }: { params: Promise<{ id: str
     setIsUploading(true);
     try {
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
-      const res = await fetch(`${baseUrl}/api/v1/consumers/management/student/${studentId}/documents`, {
+      const res = await fetch(`${baseUrl}/api/v1/management/student/${studentId}/documents`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -55,7 +55,7 @@ export default function StudentDashboard({ params }: { params: Promise<{ id: str
     const fetchDashboard = async () => {
       try {
         const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
-        const res = await fetch(`${baseUrl}/api/v1/consumers/management/student/${studentId}/dashboard`, {
+        const res = await fetch(`${baseUrl}/api/v1/management/student/${studentId}/dashboard`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
