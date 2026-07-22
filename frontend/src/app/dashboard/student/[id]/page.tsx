@@ -4,10 +4,10 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 
-export default function StudentDashboard({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+export default function StudentDashboard({ params }: { params: Promise<{ id: string }> }) {
   const { data: session } = useSession();
   const token = (session as any)?.accessToken;
-  const unwrappedParams = params instanceof Promise ? React.use(params as Promise<{ id: string }>) : (params as { id: string });
+  const unwrappedParams = React.use(params);
   const studentId = unwrappedParams.id;
   
   const [payload, setPayload] = useState<any | null>(null);
