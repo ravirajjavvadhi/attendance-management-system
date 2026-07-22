@@ -55,8 +55,8 @@ class DashboardEngine:
             credits = credits if credits > 0 else 0
 
         # Timeline Engine & Real Timetable for Today
-        import pytz
-        ist = pytz.timezone('Asia/Kolkata')
+        from zoneinfo import ZoneInfo
+        ist = ZoneInfo('Asia/Kolkata')
         now_ist = datetime.now(ist)
         day_name = now_ist.strftime("%A").upper()
         today_date = now_ist.date()

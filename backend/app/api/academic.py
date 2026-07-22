@@ -427,10 +427,10 @@ def get_faculty_live_class(
     current_user: User = Depends(get_current_management_or_faculty)
 ):
     from app.models.academic import Timetable, Period
-    import pytz
+    from zoneinfo import ZoneInfo
     from datetime import datetime
     
-    ist = pytz.timezone('Asia/Kolkata')
+    ist = ZoneInfo('Asia/Kolkata')
     now_ist = datetime.now(ist)
     day_name = now_ist.strftime("%A").upper()
     now_time = now_ist.time()
