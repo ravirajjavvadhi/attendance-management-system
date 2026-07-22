@@ -209,7 +209,7 @@ def submit_attendance(
         period = db.query(Period).filter(Period.period_number == attendance_data.period).first()
         if period:
             # Note: We must use the exact day of the target date, NOT today's date!
-            target_date_obj = datetime.strptime(attendance_data.date, "%Y-%m-%d").date()
+            target_date_obj = attendance_data.date
             target_day_name = target_date_obj.strftime("%A").upper()
             tt = db.query(Timetable).filter(
                 Timetable.section_id == attendance_data.section_id,
