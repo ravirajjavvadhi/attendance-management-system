@@ -26,14 +26,6 @@ try:
 except Exception:
     pass
 
-try:
-    with engine.connect() as conn:
-        # Drop the old notification_logs table so create_all recreates it
-        conn.execute(text("DROP TABLE IF EXISTS notification_logs CASCADE"))
-        conn.commit()
-except Exception:
-    pass
-
 migrations = [
     "ALTER TABLE attendance_records DROP CONSTRAINT IF EXISTS attendance_records_student_id_fkey",
     "ALTER TABLE attendance_records ADD CONSTRAINT attendance_records_student_id_fkey FOREIGN KEY (student_id) REFERENCES student_profiles(id)",

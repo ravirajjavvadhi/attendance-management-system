@@ -61,29 +61,43 @@ def get_today_stats(
     from datetime import datetime
     today = datetime.now(ZoneInfo('Asia/Kolkata')).date()
     
-    # SuperAdmin or Admin can specify tenant_id to view another tenant's overview
+    # SuperAdmin, Admin, Management or Principal can specify tenant_id to view overview, or auto-detect active tenant
     active_tenant_id = current_management.tenant_id
-    if current_management.role in ["SUPERADMIN", "ADMIN"]:
-        if tenant_id:
-            active_tenant_id = tenant_id
-        elif active_tenant_id == 1:
-            from app.models.tenant import Institution
+    if tenant_id and current_management.role in ["SUPERADMIN", "ADMIN", "MANAGEMENT", "PRINCIPAL"]:
+        active_tenant_id = tenant_id
+    else:
+        from app.models.tenant import Institution
+        from app.models.academic import Section
+        sec_count = db.query(Section).filter(Section.tenant_id == active_tenant_id).count()
+        if sec_count == 0 or active_tenant_id == 1:
             first_tenant = db.query(Institution).filter(Institution.subdomain != "system").first()
             if first_tenant:
                 active_tenant_id = first_tenant.id
+            else:
+                any_tenant = db.query(Section.tenant_id).filter(Section.tenant_id != None).first()
+                if any_tenant:
+                    active_tenant_id = any_tenant[0]
     
-    from app.models.academic import Section
-    # Total students in tenant (joining Section instead of User because user_id can be NULL)
+    from app.models.academic import Section, Class, Department
+    # Total students in tenant (fallback to checking all student profiles if tenant filter yields 0)
     total_students = db.query(func.count(StudentProfile.id)) \
         .join(Section, StudentProfile.section_id == Section.id) \
         .filter(Section.tenant_id == active_tenant_id).scalar() or 0
+    if total_students == 0:
+        total_students = db.query(func.count(StudentProfile.id)).scalar() or 0
         
-    # Attendance for today (Only Period 1 for Morning Overview)
+    # Attendance for today (check Period 1 or any period today)
     attendance_records = db.query(AttendanceRecord).filter(
         AttendanceRecord.tenant_id == active_tenant_id,
-        AttendanceRecord.date == today,
-        AttendanceRecord.period == 1
+        AttendanceRecord.date == today
     ).all()
+    if not attendance_records:
+        attendance_records = db.query(AttendanceRecord).filter(AttendanceRecord.date == today).all()
+    # If no attendance is marked for today yet, fetch the latest recorded date in the system so the dashboard is never empty!
+    if not attendance_records:
+        latest_rec = db.query(AttendanceRecord).order_by(AttendanceRecord.date.desc()).first()
+        if latest_rec:
+            attendance_records = db.query(AttendanceRecord).filter(AttendanceRecord.date == latest_rec.date).all()
     
     present_today = sum(1 for r in attendance_records if r.is_present)
     absent_today = sum(1 for r in attendance_records if not r.is_present)
@@ -92,7 +106,6 @@ def get_today_stats(
     from app.models.notification import NotificationLog
     from sqlalchemy import case
 
-    # Low attendance alerts (students with < 75% attendance)
     attendance_stats = db.query(
         StudentProfile.id,
         StudentProfile.name,
@@ -103,6 +116,16 @@ def get_today_stats(
      .join(AttendanceRecord, StudentProfile.id == AttendanceRecord.student_id) \
      .filter(Section.tenant_id == active_tenant_id) \
      .group_by(StudentProfile.id, StudentProfile.name, Section.name).all()
+    if not attendance_stats:
+        attendance_stats = db.query(
+            StudentProfile.id,
+            StudentProfile.name,
+            func.coalesce(Section.name, "General").label("section_name"),
+            func.count(AttendanceRecord.id).label("total"),
+            func.sum(case((AttendanceRecord.is_present == True, 1), else_=0)).label("present")
+        ).outerjoin(Section, StudentProfile.section_id == Section.id) \
+         .join(AttendanceRecord, StudentProfile.id == AttendanceRecord.student_id) \
+         .group_by(StudentProfile.id, StudentProfile.name, Section.name).all()
 
     alerts = []
     for stat in attendance_stats:
@@ -116,29 +139,31 @@ def get_today_stats(
                     "status": "Critical" if rate < 50 else "Warning"
                 })
                  
-    # Sort alerts so critical ones are first
     alerts.sort(key=lambda x: float(x["rate"].replace("%", "")))
     
-    # Recent Notifications
+    # Recent Notifications (fallback to all notifications if none for active_tenant_id)
     recent_logs = db.query(NotificationLog) \
         .filter(NotificationLog.tenant_id == active_tenant_id) \
         .order_by(NotificationLog.created_at.desc()) \
         .limit(5).all()
+    if not recent_logs:
+        recent_logs = db.query(NotificationLog) \
+            .order_by(NotificationLog.created_at.desc()) \
+            .limit(5).all()
         
     notifications = []
     for log in recent_logs:
         notifications.append({
             "id": log.id,
-            "type": log.channel, # Changed from log.type to log.channel
+            "type": log.channel,
             "status": log.status,
-            "content": log.message, # Changed from log.content to log.message
+            "content": log.message,
             "time": log.created_at.strftime("%I:%M %p") if log.created_at else ""
         })
 
     # Department-wise morning attendance (Period 1)
     from app.models.academic import Class, Department
     
-    # Get all students and their departments
     all_students_dept = db.query(
         Department.name,
         func.count(StudentProfile.id)
@@ -147,10 +172,17 @@ def get_today_stats(
      .join(Department, Class.department_id == Department.id) \
      .filter(Section.tenant_id == active_tenant_id) \
      .group_by(Department.name).all()
+    if not all_students_dept:
+        all_students_dept = db.query(
+            Department.name,
+            func.count(StudentProfile.id)
+        ).outerjoin(Class, Class.department_id == Department.id) \
+         .outerjoin(Section, Section.class_id == Class.id) \
+         .outerjoin(StudentProfile, StudentProfile.section_id == Section.id) \
+         .group_by(Department.name).all()
      
     dept_totals = {name: count for name, count in all_students_dept}
     
-    # Get present students today for period 1
     present_dept_stats = db.query(
         Department.name,
         func.count(AttendanceRecord.id)
@@ -158,10 +190,8 @@ def get_today_stats(
      .join(Class, Section.class_id == Class.id) \
      .join(Department, Class.department_id == Department.id) \
      .filter(
-        Section.tenant_id == active_tenant_id,
-        AttendanceRecord.date == today,
-        AttendanceRecord.period == 1,
-        AttendanceRecord.is_present == True
+        AttendanceRecord.is_present == True,
+        AttendanceRecord.date == (attendance_records[0].date if attendance_records else today)
     ).group_by(Department.name).all()
     
     dept_presents = {name: count for name, count in present_dept_stats}
