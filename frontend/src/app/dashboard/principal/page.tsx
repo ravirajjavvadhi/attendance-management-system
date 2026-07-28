@@ -23,7 +23,7 @@ export default function PrincipalDashboard() {
     const fetchStats = async () => {
       if (!token) return;
       try {
-        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
         const res = await fetch(`${baseUrl}/api/v1/attendance/stats/today`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -50,7 +50,7 @@ export default function PrincipalDashboard() {
   const [eventDate, setEventDate] = useState("");
   const [eventSubmitting, setEventSubmitting] = useState(false);
 
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
 
   const fetchEvents = async () => {
     if (!token) return;

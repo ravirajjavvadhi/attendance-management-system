@@ -17,7 +17,7 @@ export default function LeaveApprovalsPage() {
 
   const fetchLeaves = async () => {
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/consumers/management/leaves`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -34,7 +34,7 @@ export default function LeaveApprovalsPage() {
 
   const updateStatus = async (id: number, status: string) => {
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/consumers/management/leaves/${id}/status`, {
         method: "PUT",
         headers: { 

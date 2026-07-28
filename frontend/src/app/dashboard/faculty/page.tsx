@@ -29,7 +29,7 @@ export default function FacultyDashboard() {
     const fetchSettingsAndSections = async () => {
       if (!token) return;
       try {
-        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
         
         const settingsRes = await fetch(`${baseUrl}/api/v1/institution/me/settings`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -82,7 +82,7 @@ export default function FacultyDashboard() {
       if (!token || !selectedSectionId) return;
       setIsLoading(true);
       try {
-        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
         const res = await fetch(`${baseUrl}/api/v1/academic/students?section_id=${selectedSectionId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });

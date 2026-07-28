@@ -22,7 +22,7 @@ export default function SmsGatewayPage() {
   const fetchDevices = async () => {
     if (!token) return;
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       
       const res = await fetch(`${baseUrl}/api/v1/device`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -62,7 +62,7 @@ export default function SmsGatewayPage() {
     if (!token) return;
     setIsGenerating(true);
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/device/generate-token`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -86,7 +86,7 @@ export default function SmsGatewayPage() {
     if (!token) return;
     if (!confirm("Are you sure you want to archive this device?")) return;
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       await fetch(`${baseUrl}/api/v1/device/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
@@ -103,7 +103,7 @@ export default function SmsGatewayPage() {
     if (!newName || newName === currentName) return;
     
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       await fetch(`${baseUrl}/api/v1/device/${id}`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -121,7 +121,7 @@ export default function SmsGatewayPage() {
     if (!confirm(`Switch SMS Engine to ${newEngine}?`)) return;
     
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/institution/me/settings`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },

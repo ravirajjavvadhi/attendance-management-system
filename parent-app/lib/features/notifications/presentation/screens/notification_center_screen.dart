@@ -199,7 +199,7 @@ class _NotificationList extends StatelessWidget {
                           ),
                           child: Text(
                             badgeText,
-                            style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.w800, tracking: 0.3),
+                            style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.3),
                           ),
                         ),
                         Text(

@@ -29,7 +29,7 @@ export default function SuperAdminDashboard() {
   const fetchInstitutions = async () => {
     if (!token) return;
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/institutions/with-admins`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -54,7 +54,7 @@ export default function SuperAdminDashboard() {
     setIsSubmitting(true);
 
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/institutions/provision`, {
         method: "POST",
         headers: { 
@@ -95,7 +95,7 @@ export default function SuperAdminDashboard() {
     if (!token) return;
     
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/institutions/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }

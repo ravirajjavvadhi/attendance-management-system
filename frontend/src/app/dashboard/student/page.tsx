@@ -54,7 +54,7 @@ export default function StudentManagement() {
   const fetchData = async () => {
     if (!token) return;
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       
       const [deptRes, clsRes, secRes, stuRes] = await Promise.all([
         fetch(`${baseUrl}/api/v1/academic/departments`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -84,7 +84,7 @@ export default function StudentManagement() {
     if (!token || !newDeptName.trim()) return;
     setIsSubmitting(true);
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/academic/departments`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -96,7 +96,7 @@ export default function StudentManagement() {
 
   const handleDeleteDepartment = async (id: number) => {
     if (!confirm("Delete this department? Classes and sections under it will remain.")) return;
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
     await fetch(`${baseUrl}/api/v1/academic/departments/${id}`, {
       method: "DELETE", headers: { Authorization: `Bearer ${token}` }
     });
@@ -108,7 +108,7 @@ export default function StudentManagement() {
     if (!token) return;
     setIsSubmitting(true);
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/academic/classes`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -129,7 +129,7 @@ export default function StudentManagement() {
     if (!token || !setupClassId) return;
     setIsSubmitting(true);
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/academic/sections`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -155,7 +155,7 @@ export default function StudentManagement() {
     const rolls = rollNumbersInput.split(",").map(r => r.trim()).filter(r => r);
     
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/academic/students/bulk`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -183,7 +183,7 @@ export default function StudentManagement() {
     if (!token) return;
     
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/academic/students/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
@@ -202,7 +202,7 @@ export default function StudentManagement() {
     
     setIsSubmitting(true);
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/academic/students/${editingStudent.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },

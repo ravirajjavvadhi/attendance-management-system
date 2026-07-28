@@ -35,7 +35,7 @@ const emptyPeriod = (num: number): PeriodRow => ({
 export default function TimetablePage() {
   const { data: session } = useSession();
   const token = (session as any)?.accessToken;
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
 
   const [departments, setDepartments] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);

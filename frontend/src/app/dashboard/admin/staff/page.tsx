@@ -39,7 +39,7 @@ export default function FacultyAccessManagement() {
   const fetchData = async () => {
     if (!token) return;
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const [facRes, clsRes, secRes] = await Promise.all([
         fetch(`${baseUrl}/api/v1/users/faculty`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${baseUrl}/api/v1/academic/classes`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -66,7 +66,7 @@ export default function FacultyAccessManagement() {
     setIsSubmitting(true);
 
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/users/faculty`, {
         method: "POST",
         headers: { 
@@ -113,7 +113,7 @@ export default function FacultyAccessManagement() {
     if (!confirm(`Are you sure you want to completely revoke access for ${email}?`)) return;
     if (!token) return;
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/users/faculty/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
@@ -133,7 +133,7 @@ export default function FacultyAccessManagement() {
     if (!token || !assigningFacultyId || !selectedSectionId) return;
     setIsSubmitting(true);
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/academic/sections/${selectedSectionId}/assign?faculty_user_id=${assigningFacultyId}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }

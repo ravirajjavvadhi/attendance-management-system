@@ -209,7 +209,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                                   const SizedBox(width: 6),
                                   Text(
                                     isCompletedOrFree ? 'TODAY\'S SUMMARY' : 'LIVE NOW',
-                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.extrabold, tracking: 0.5),
+                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5),
                                   ),
                                 ],
                               ),
@@ -334,7 +334,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                               isShortage ? 'SHORTAGE (<75%)' : 'GOOD STATUS',
                               style: TextStyle(
                                 fontSize: 11,
-                                fontWeight: FontWeight.extrabold,
+                                fontWeight: FontWeight.w800,
                                 color: isShortage ? const Color(0xFFDC2626) : const Color(0xFF059669),
                               ),
                             ),
@@ -533,7 +533,7 @@ class _StatCard extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 24),
           const SizedBox(height: 12),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.extrabold)),
+          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
           Text(title, style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w600)),
         ],
@@ -643,7 +643,7 @@ class _SubjectAttendanceCard extends StatelessWidget {
                 ),
                 child: Text(
                   '$percentage%',
-                  style: TextStyle(color: tintColor, fontWeight: FontWeight.extrabold, fontSize: 12),
+                  style: TextStyle(color: tintColor, fontWeight: FontWeight.w800, fontSize: 12),
                 ),
               ),
             ],

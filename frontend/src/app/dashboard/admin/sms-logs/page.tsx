@@ -15,7 +15,7 @@ export default function SmsLogsPage() {
     if (!token) return;
     setIsLoading(true);
     try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/notification/logs?limit=200`, {
         headers: { Authorization: `Bearer ${token}` }
       });
