@@ -3,12 +3,15 @@ from sqlalchemy.orm import Session
 from datetime import date
 from typing import List
 from app.db.database import get_db
-from app.models.attendance import AttendanceRecord
+from app.models.attendance import AttendanceRecord, AttendanceStatusEnum
+from app.models.academic import AcademicSession
 from app.models.user import User, UserRole
 from app.models.profiles import StudentProfile
 from app.schemas.attendance import AttendanceSubmit, SmartAttendanceSubmit
 from app.api.deps import get_current_faculty, get_current_management_or_faculty
 from app.services.sms import queue_sms
+from app.services.subject_code_service import SubjectCodeService
+from app.engines.materialized_summary_engine import materialized_summary_engine
 
 router = APIRouter()
 
@@ -192,6 +195,13 @@ def submit_attendance(
     db: Session = Depends(get_db),
     current_faculty: User = Depends(get_current_faculty)
 ):
+    # Determine active academic session for term tracking
+    active_session = db.query(AcademicSession).filter(
+        AcademicSession.tenant_id == current_faculty.tenant_id,
+        AcademicSession.is_current == True
+    ).first()
+    session_id_val = active_session.id if active_session else None
+
     # Process the attendance list
     absent_student_ids = []
     
@@ -205,10 +215,8 @@ def submit_attendance(
         ist = ZoneInfo('Asia/Kolkata')
         day_name = datetime.now(ist).strftime("%A").upper()
         
-        # We need period_id
         period = db.query(Period).filter(Period.period_number == attendance_data.period).first()
         if period:
-            # Note: We must use the exact day of the target date, NOT today's date!
             target_date_obj = attendance_data.date
             target_day_name = target_date_obj.strftime("%A").upper()
             tt = db.query(Timetable).filter(
@@ -220,15 +228,15 @@ def submit_attendance(
                 subject_id = tt.subject_id
                 
     subject_name = "Class"
+    subj_display = "Class"
     if subject_id:
         from app.models.erp_academic import Subject
         subj = db.query(Subject).filter(Subject.id == subject_id).first()
         if subj:
             subject_name = subj.name
-    
+            subj_display = f"{subj.name} ({SubjectCodeService.get_display_code(subj)})"
     
     for record in attendance_data.records:
-        # Check if already exists for this date/student/period
         query = db.query(AttendanceRecord).filter(
             AttendanceRecord.student_id == record.student_id,
             AttendanceRecord.date == attendance_data.date
@@ -237,10 +245,13 @@ def submit_attendance(
             query = query.filter(AttendanceRecord.period == attendance_data.period)
         
         db_record = query.first()
+        status_enum = AttendanceStatusEnum.PRESENT.value if record.is_present else AttendanceStatusEnum.ABSENT.value
         
         if db_record:
             db_record.is_present = record.is_present
+            db_record.status = status_enum
             db_record.marked_by = current_faculty.id
+            db_record.academic_session_id = session_id_val
             if subject_id:
                 db_record.subject_id = subject_id
         else:
@@ -251,7 +262,9 @@ def submit_attendance(
                 date=attendance_data.date,
                 period=attendance_data.period,
                 subject_id=subject_id,
+                academic_session_id=session_id_val,
                 is_present=record.is_present,
+                status=status_enum,
                 marked_by=current_faculty.id
             )
             db.add(new_record)
@@ -261,7 +274,7 @@ def submit_attendance(
         student_prof = db.query(StudentProfile).filter(StudentProfile.id == record.student_id).first()
         if student_prof and student_prof.user_id:
             event_type = "ATTENDANCE_PRESENT" if record.is_present else "ATTENDANCE_ABSENT"
-            desc = "Marked Present" if record.is_present else "Marked Absent"
+            desc = f"Marked Present for {subj_display}" if record.is_present else f"Marked Absent for {subj_display}"
             t_event = TimelineEvent(
                 tenant_id=current_faculty.tenant_id,
                 user_id=student_prof.user_id,
@@ -273,29 +286,37 @@ def submit_attendance(
         if not record.is_present:
             absent_student_ids.append(record.student_id)
             
-            # Send Notification to Parent!
+            # Send Notification to Parent
             if student_prof and student_prof.user_id:
                 from app.models.notification import NotificationLog
                 from app.models.profiles import ParentStudentLink, ParentProfile
                 
-                # Find parent
                 link = db.query(ParentStudentLink).filter(ParentStudentLink.student_id == student_prof.id).first()
                 if link:
                     parent = db.query(ParentProfile).filter(ParentProfile.id == link.parent_id).first()
                     if parent:
                         parent_user = db.query(User).filter(User.id == parent.user_id).first()
                         if parent_user:
-                            # Create NotificationLog for the parent
                             notif = NotificationLog(
                                 tenant_id=current_faculty.tenant_id,
+                                student_id=student_prof.id,
                                 channel="PUSH",
                                 recipient=parent_user.email or parent_user.mobile_number,
                                 status="SENT",
-                                message=f"Your child {student_prof.name} was marked ABSENT for {subject_name} on {attendance_data.date} (Period {attendance_data.period})."
+                                event_type="ATTENDANCE",
+                                title=f"Absence Alert: {subj_display}",
+                                message=f"Your child {student_prof.name} was marked ABSENT for {subj_display} on {attendance_data.date} (Period {attendance_data.period or 'Daily'})."
                             )
                             db.add(notif)
             
     db.commit()
+    
+    # Trigger Materialized Summary Engine updates
+    all_std_ids = [r.student_id for r in attendance_data.records]
+    if all_std_ids:
+        materialized_summary_engine.process_attendance_submission(
+            db, current_faculty.tenant_id, attendance_data.section_id, subject_id, current_faculty.id, attendance_data.date, all_std_ids
+        )
     
     # Trigger background tasks using FastAPI for absent students
     for student_id in absent_student_ids:
@@ -314,13 +335,44 @@ def submit_smart_attendance(
     BookMyShow Style: Faculty only submits the array of absent student IDs.
     The backend automatically defaults all other students in the section to Present.
     """
-    # Get all students in section
+    active_session = db.query(AcademicSession).filter(
+        AcademicSession.tenant_id == current_faculty.tenant_id,
+        AcademicSession.is_current == True
+    ).first()
+    session_id_val = active_session.id if active_session else None
+
+    # Pre-fetch subject_id based on Timetable for this section and period
+    subject_id = None
+    if attendance_data.period is not None:
+        from app.models.erp_academic import Timetable, Period
+        from zoneinfo import ZoneInfo
+        from datetime import datetime
+        
+        period = db.query(Period).filter(Period.period_number == attendance_data.period).first()
+        if period:
+            target_date_obj = attendance_data.date
+            target_day_name = target_date_obj.strftime("%A").upper()
+            tt = db.query(Timetable).filter(
+                Timetable.section_id == attendance_data.section_id,
+                Timetable.period_id == period.id,
+                Timetable.day_of_week == target_day_name
+            ).first()
+            if tt:
+                subject_id = tt.subject_id
+                
+    subj_display = "Class"
+    if subject_id:
+        from app.models.erp_academic import Subject
+        subj = db.query(Subject).filter(Subject.id == subject_id).first()
+        if subj:
+            subj_display = f"{subj.name} ({SubjectCodeService.get_display_code(subj)})"
+
     all_students = db.query(StudentProfile).filter(StudentProfile.section_id == attendance_data.section_id).all()
-    
-    newly_absent_ids = []
+    newly_absent_students = []
     
     for student in all_students:
         is_present = student.id not in attendance_data.absent_student_ids
+        status_enum = AttendanceStatusEnum.PRESENT.value if is_present else AttendanceStatusEnum.ABSENT.value
         
         query = db.query(AttendanceRecord).filter(
             AttendanceRecord.student_id == student.id,
@@ -334,15 +386,18 @@ def submit_smart_attendance(
         db_record = query.first()
         
         if db_record:
-            # If they were previously present, but now absent, they are newly absent!
             if db_record.is_present and not is_present:
-                newly_absent_ids.append(student.id)
+                newly_absent_students.append(student)
             
             db_record.is_present = is_present
+            db_record.status = status_enum
             db_record.marked_by = current_faculty.id
+            db_record.academic_session_id = session_id_val
+            if subject_id:
+                db_record.subject_id = subject_id
         else:
             if not is_present:
-                newly_absent_ids.append(student.id)
+                newly_absent_students.append(student)
                 
             new_record = AttendanceRecord(
                 tenant_id=current_faculty.tenant_id,
@@ -350,7 +405,10 @@ def submit_smart_attendance(
                 section_id=attendance_data.section_id,
                 date=attendance_data.date,
                 period=attendance_data.period,
+                subject_id=subject_id,
+                academic_session_id=session_id_val,
                 is_present=is_present,
+                status=status_enum,
                 marked_by=current_faculty.id
             )
             db.add(new_record)
@@ -359,21 +417,51 @@ def submit_smart_attendance(
         from app.models.communication import TimelineEvent
         if student.user_id:
             event_type = "ATTENDANCE_PRESENT" if is_present else "ATTENDANCE_ABSENT"
-            desc = f"Marked {'Present' if is_present else 'Absent'} for period {attendance_data.period}" if attendance_data.period else f"Marked {'Present' if is_present else 'Absent'}"
+            desc = f"Marked {'Present' if is_present else 'Absent'} for {subj_display}"
             t_event = TimelineEvent(
+                tenant_id=current_faculty.tenant_id,
                 user_id=student.user_id,
                 event_type=event_type,
                 description=desc
             )
             db.add(t_event)
             
+        # Generate immutable absence alert for parent if newly absent
+        if not is_present and student in newly_absent_students and student.user_id:
+            from app.models.notification import NotificationLog
+            from app.models.profiles import ParentStudentLink, ParentProfile
+            link = db.query(ParentStudentLink).filter(ParentStudentLink.student_id == student.id).first()
+            if link:
+                parent = db.query(ParentProfile).filter(ParentProfile.id == link.parent_id).first()
+                if parent:
+                    parent_user = db.query(User).filter(User.id == parent.user_id).first()
+                    if parent_user:
+                        notif = NotificationLog(
+                            tenant_id=current_faculty.tenant_id,
+                            student_id=student.id,
+                            channel="PUSH",
+                            recipient=parent_user.email or parent_user.mobile_number,
+                            status="SENT",
+                            event_type="ATTENDANCE",
+                            title=f"Absence Alert: {subj_display}",
+                            message=f"Your child {student.name} was marked ABSENT for {subj_display} on {attendance_data.date} (Period {attendance_data.period or 'Daily'})."
+                        )
+                        db.add(notif)
+
     db.commit()
     
+    # Trigger Materialized Summary Engine updates
+    all_std_ids = [s.id for s in all_students]
+    if all_std_ids:
+        materialized_summary_engine.process_attendance_submission(
+            db, current_faculty.tenant_id, attendance_data.section_id, subject_id, current_faculty.id, attendance_data.date, all_std_ids
+        )
+    
     # Trigger background SMS for newly added absentees only
-    for student_id in newly_absent_ids:
-        background_tasks.add_task(queue_sms, student_id, str(attendance_data.date), current_faculty.tenant_id, attendance_data.period)
+    for student in newly_absent_students:
+        background_tasks.add_task(queue_sms, student.id, str(attendance_data.date), current_faculty.tenant_id, attendance_data.period)
 
-    return {"message": "Smart Attendance saved successfully", "absent_count": len(newly_absent_ids)}
+    return {"message": "Smart Attendance saved successfully", "absent_count": len(newly_absent_students)}
 
 @router.get("/report")
 def get_attendance_report(

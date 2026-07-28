@@ -89,12 +89,13 @@ def link_student(request: LinkStudentRequest, db: Session = Depends(get_db)): # 
 
 @router.get("/dashboard")
 def get_parent_dashboard(
+    session_id: int = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
     Returns aggregated JSON payload for the Parent App dashboard.
-    Dynamically loads student details based on parent email/user mapping.
+    Dynamically loads student details based on parent email/user mapping and optional session_id term switcher.
     """
     from app.engines.dashboard_engine import DashboardEngine
     from app.models.profiles import ParentProfile, ParentStudentLink
@@ -112,28 +113,33 @@ def get_parent_dashboard(
     payload = DashboardEngine.get_student_mega_payload(
         db=db,
         student_id=link.student_id,
-        tenant_id=current_user.tenant_id
+        tenant_id=current_user.tenant_id,
+        session_id=session_id
     )
     
     if not payload:
         raise HTTPException(status_code=404, detail="Student data not found")
 
-    # Inject Parent's specific notifications
-    from app.models.notification import NotificationLog
-    db_notifs = db.query(NotificationLog).filter(
-        NotificationLog.tenant_id == current_user.tenant_id,
-        (NotificationLog.recipient == current_user.email) | (NotificationLog.recipient == current_user.mobile_number)
-    ).order_by(NotificationLog.created_at.desc()).limit(10).all()
-    
-    payload['notifications'] = [
-        {
-            "id": n.id,
-            "title": "Attendance Alert" if "absent" in n.message.lower() else "System Notification",
-            "message": n.message,
-            "date": n.created_at.strftime("%Y-%m-%d %H:%M"),
-            "type": "ATTENDANCE" if "absent" in n.message.lower() else "GENERAL"
-        } for n in db_notifs
-    ]
+    # Inject Parent's specific notifications if not already present from engine
+    if 'notifications' not in payload or not payload['notifications']:
+        from app.models.notification import NotificationLog
+        db_notifs = db.query(NotificationLog).filter(
+            NotificationLog.tenant_id == current_user.tenant_id,
+            ((NotificationLog.recipient == current_user.email) | (NotificationLog.recipient == current_user.mobile_number) | (NotificationLog.student_id == link.student_id)),
+            NotificationLog.deleted_by_parent == False
+        ).order_by(NotificationLog.created_at.desc()).limit(15).all()
+        
+        payload['notifications'] = [
+            {
+                "id": n.id,
+                "title": n.title or ("Attendance Alert" if "absent" in n.message.lower() else "Institutional Event"),
+                "message": n.message,
+                "date": n.created_at.strftime("%B %d, %I:%M %p") if n.created_at else "Recently",
+                "type": n.event_type or ("ATTENDANCE" if "absent" in n.message.lower() else "GENERAL"),
+                "isRead": n.is_read or False,
+                "priority": "HIGH" if "absent" in n.message.lower() else "MEDIUM"
+            } for n in db_notifs
+        ]
 
     return {
         "status": "success",

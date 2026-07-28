@@ -36,6 +36,8 @@ class Subject(Base):
     semester_id = Column(Integer, ForeignKey("erp_semesters.id"), nullable=True)
     name = Column(String, nullable=False)
     code = Column(String, nullable=True)
+    generated_code = Column(String, nullable=True, index=True) # E.g., CN, CN101
+    is_auto_generated = Column(Boolean, default=True)
     credits = Column(Integer, nullable=True, default=0)
     subject_type = Column(String, default="THEORY") # THEORY, LAB
     prerequisites = Column(String, nullable=True)
@@ -87,6 +89,7 @@ class Timetable(Base):
     subject_id = Column(Integer, ForeignKey("erp_subjects.id"), nullable=False)
     faculty_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     room_number = Column(String, nullable=True)
+    academic_session_id = Column(Integer, ForeignKey("academic_sessions.id"), nullable=True, index=True)
 
 class SemesterResult(Base):
     __tablename__ = "erp_semester_results"

@@ -8,6 +8,7 @@ from app.api.deps import get_current_admin, get_current_management_or_faculty
 from app.models.user import User, UserRole
 from app.models.academic import Section, Class, AcademicYear, Department
 from app.models.erp_academic import Subject, Period, Timetable, FacultySubjectAllocation
+from app.services.subject_code_service import SubjectCodeService
 
 router = APIRouter()
 
@@ -174,24 +175,26 @@ def save_timetable(
                 db.add(period)
                 db.flush()
 
-            # Get or create Subject
+            # Get or create Subject using collision-safe SubjectCodeService
             if p_entry.is_break:
                 subj_name = p_entry.subject_name or "Break"
-                code = "BREAK"
+                code_data = {"code": "BREAK", "generated_code": "BREAK", "is_auto_generated": False}
             else:
                 subj_name = p_entry.subject_name
-                code = (p_entry.subject_code or p_entry.subject_name[:6].upper().replace(" ", "")).strip()
+                code_data = SubjectCodeService.resolve_subject_code(db, current_user.tenant_id, subj_name, p_entry.subject_code)
 
             subject = db.query(Subject).filter(
                 Subject.tenant_id == current_user.tenant_id,
-                Subject.code == code
+                Subject.name == subj_name
             ).first()
 
             if not subject:
                 subject = Subject(
                     tenant_id=current_user.tenant_id,
                     name=subj_name,
-                    code=code,
+                    code=code_data["code"],
+                    generated_code=code_data["generated_code"],
+                    is_auto_generated=code_data["is_auto_generated"],
                     credits=0
                 )
                 db.add(subject)

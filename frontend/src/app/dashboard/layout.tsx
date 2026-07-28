@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { LayoutDashboard, Users, CalendarCheck, GraduationCap, FileText, LogOut, Settings, BookOpen, Shield, Smartphone } from "lucide-react";
+import { LayoutDashboard, Users, CalendarCheck, GraduationCap, FileText, LogOut, Settings, BookOpen, Shield, Smartphone, Sparkles, Zap } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -25,6 +25,9 @@ export default function DashboardLayout({
     { name: "SMS Gateway", href: "/dashboard/admin/sms-gateway", icon: Smartphone, roles: ["MANAGEMENT"] },
     { name: "SMS Logs", href: "/dashboard/admin/sms-logs", icon: FileText, roles: ["MANAGEMENT"] },
     { name: "Reports", href: "/dashboard/admin/reports", icon: FileText, roles: ["MANAGEMENT", "SUPERADMIN"] },
+    { name: "Master Ledger", href: "/dashboard/management/attendance-sheet", icon: BookOpen, roles: ["MANAGEMENT", "SUPERADMIN", "ADMIN"] },
+    { name: "AI Analytics", href: "/dashboard/management/analytics", icon: Sparkles, roles: ["MANAGEMENT", "SUPERADMIN", "ADMIN"] },
+    { name: "Smart Promotion", href: "/dashboard/management/smart-transition", icon: Zap, roles: ["MANAGEMENT", "SUPERADMIN", "ADMIN"] },
   ].filter(item => item.roles.includes(role));
 
   return (
@@ -70,7 +73,7 @@ export default function DashboardLayout({
       </aside>
       
       <main className="flex-1 p-4 md:p-8 overflow-y-auto max-h-screen">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           {children}
         </div>
       </main>

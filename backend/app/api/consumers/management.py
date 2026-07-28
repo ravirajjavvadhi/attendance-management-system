@@ -9,8 +9,16 @@ from app.api.deps import get_current_management
 from app.models.user import User
 from app.models.academic import Event
 from app.engines.dashboard_engine import DashboardEngine
+from app.engines.enterprise_analytics_engine import enterprise_analytics_engine
+from typing import Optional
 
 router = APIRouter()
+
+class SmartPromoteRequest(BaseModel):
+    new_academic_year: str
+    new_semester_name: str
+    duplicate_timetable: bool = False
+    section_id: Optional[int] = None
 
 class EventCreate(BaseModel):
     title: str
@@ -153,3 +161,47 @@ def upload_student_document(
     db.commit()
     db.refresh(doc)
     return {"status": "success", "data": {"id": doc.id}}
+
+@router.get("/reports/master-attendance-sheet")
+def get_master_attendance_sheet_endpoint(
+    section_id: Optional[int] = None,
+    session_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_management)
+):
+    """
+    Returns university-grade tabular attendance ledger with multi-column per-subject counts, percentages, 
+    75% warning badge, ML/OD counts, and Shortage %.
+    """
+    return enterprise_analytics_engine.get_master_attendance_sheet(db, current_user.tenant_id, section_id, session_id)
+
+@router.post("/academic/smart-promote-semester")
+def execute_smart_promote_semester(
+    request: SmartPromoteRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_management)
+):
+    """
+    1-Click Smart Term Transition automation. Archives current academic term, creates new session, 
+    ports timetable if requested, resets active daily attendance, and triggers parental event stream notifications.
+    """
+    return enterprise_analytics_engine.execute_smart_term_promotion(
+        db, 
+        current_user.tenant_id, 
+        request.new_academic_year, 
+        request.new_semester_name, 
+        request.duplicate_timetable,
+        request.section_id
+    )
+
+@router.get("/analytics/enterprise")
+def get_enterprise_analytics_endpoint(
+    session_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_management)
+):
+    """
+    Dynamic AI Analytics & Executive Insights engine generating live natural language trends, 
+    student detention risk curves, subject difficulty indices, and faculty completion rates.
+    """
+    return enterprise_analytics_engine.get_enterprise_analytics(db, current_user.tenant_id, session_id)
