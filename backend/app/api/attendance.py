@@ -99,8 +99,9 @@ def get_today_stats(
         if latest_rec:
             attendance_records = db.query(AttendanceRecord).filter(AttendanceRecord.date == latest_rec.date).all()
     
-    present_today = sum(1 for r in attendance_records if r.is_present)
-    absent_today = sum(1 for r in attendance_records if not r.is_present)
+    present_student_ids = {r.student_id for r in attendance_records if r.is_present}
+    present_today = len(present_student_ids)
+    absent_today = total_students - present_today if total_students >= present_today else 0
     
     # Low attendance alerts (students with < 75% attendance)
     from app.models.notification import NotificationLog
@@ -185,7 +186,7 @@ def get_today_stats(
     
     present_dept_stats = db.query(
         Department.name,
-        func.count(AttendanceRecord.id)
+        func.count(func.distinct(AttendanceRecord.student_id))
     ).join(Section, AttendanceRecord.section_id == Section.id) \
      .join(Class, Section.class_id == Class.id) \
      .join(Department, Class.department_id == Department.id) \

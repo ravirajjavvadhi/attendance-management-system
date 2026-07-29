@@ -277,9 +277,10 @@ class MaterializedSummaryEngine:
             AttendanceRecord.date == snap_date
         ).all()
 
-        present_cnt = sum(1 for r in today_recs if r.is_present or r.status in [AttendanceStatusEnum.PRESENT.value, AttendanceStatusEnum.ON_DUTY.value])
-        absent_cnt = sum(1 for r in today_recs if not r.is_present and r.status not in [AttendanceStatusEnum.ON_DUTY.value, AttendanceStatusEnum.MEDICAL_LEAVE.value])
-        total_marked = len(today_recs)
+        present_students = {r.student_id for r in today_recs if r.is_present or r.status in [AttendanceStatusEnum.PRESENT.value, AttendanceStatusEnum.ON_DUTY.value]}
+        present_cnt = len(present_students)
+        absent_cnt = stds - present_cnt if stds >= present_cnt else 0
+        total_marked = stds
         rate = round((present_cnt / total_marked) * 100.0, 2) if total_marked > 0 else 100.0
 
         # Build departmental ranking JSON
