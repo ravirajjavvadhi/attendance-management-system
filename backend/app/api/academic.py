@@ -321,6 +321,7 @@ def get_students(
             assigned_section_ids = [a.section_id for a in db.query(FacultySectionAssignment).filter(FacultySectionAssignment.faculty_user_id == current_user.id).all()]
             query = query.filter(Section.id.in_(assigned_section_ids))
     
+    query = query.order_by(StudentProfile.roll_number.asc())
     students = query.all()
     
     result = []
