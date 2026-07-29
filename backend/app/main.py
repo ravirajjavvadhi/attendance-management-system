@@ -60,6 +60,8 @@ migrations = [
     "ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS subject_id INTEGER",
     "ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS session_id INTEGER",
     "ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS academic_session_id INTEGER",
+    "ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'PRESENT'",
+    "ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS marked_by INTEGER",
     "ALTER TABLE attendance_summaries ADD COLUMN IF NOT EXISTS academic_session_id INTEGER",
     "ALTER TABLE attendance_summaries ADD COLUMN IF NOT EXISTS medical_leave_count INTEGER DEFAULT 0",
     "ALTER TABLE attendance_summaries ADD COLUMN IF NOT EXISTS od_count INTEGER DEFAULT 0",
