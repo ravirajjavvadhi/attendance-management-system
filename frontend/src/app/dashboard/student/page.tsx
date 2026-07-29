@@ -34,6 +34,21 @@ export default function StudentManagement() {
   const [selectedDeptId, setSelectedDeptId] = useState("");
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedSectionId, setSelectedSectionId] = useState("");
+
+  useEffect(() => {
+    const savedDept = sessionStorage.getItem("studentFilterDept");
+    const savedClass = sessionStorage.getItem("studentFilterClass");
+    const savedSection = sessionStorage.getItem("studentFilterSection");
+    if (savedDept) setSelectedDeptId(savedDept);
+    if (savedClass) setSelectedClassId(savedClass);
+    if (savedSection) setSelectedSectionId(savedSection);
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem("studentFilterDept", selectedDeptId);
+    sessionStorage.setItem("studentFilterClass", selectedClassId);
+    sessionStorage.setItem("studentFilterSection", selectedSectionId);
+  }, [selectedDeptId, selectedClassId, selectedSectionId]);
   
   const [newDeptName, setNewDeptName] = useState("");
   const [newDeptCode, setNewDeptCode] = useState("");
