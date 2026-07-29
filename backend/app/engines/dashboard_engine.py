@@ -23,6 +23,8 @@ class DashboardEngine:
         
         sec = db.query(Section).filter(Section.id == student.section_id).first()
         section_name = sec.name if sec else "N/A"
+        if sec and sec.tenant_id:
+            tenant_id = sec.tenant_id
 
         # 0. Academic Session handling (Term Switcher)
         sessions_db = db.query(AcademicSession).filter(AcademicSession.tenant_id == tenant_id).order_by(AcademicSession.id.desc()).all()

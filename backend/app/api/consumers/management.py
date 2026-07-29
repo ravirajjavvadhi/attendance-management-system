@@ -5,7 +5,7 @@ from typing import List
 from datetime import datetime
 
 from app.db.database import get_db
-from app.api.deps import get_current_management
+from app.api.deps import get_current_management, get_current_active_user
 from app.models.user import User
 from app.models.academic import Event
 from app.engines.dashboard_engine import DashboardEngine
@@ -70,7 +70,7 @@ def get_events(
 def get_management_student_dashboard(
     student_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_management)
+    current_user: User = Depends(get_current_active_user)
 ):
     """
     Allows Management/Admin to view the detailed individual student mega-dashboard,

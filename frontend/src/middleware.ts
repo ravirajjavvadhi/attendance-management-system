@@ -9,14 +9,16 @@ export default withAuth(
 
     // Define allowed paths per role
     const roleRoutes: Record<string, string[]> = {
-      SUPERADMIN: ["/dashboard/superadmin", "/dashboard/admin/reports"],
-      MANAGEMENT: ["/dashboard/principal", "/dashboard/admin/staff", "/dashboard/student", "/dashboard/timetable", "/dashboard/admin/reports", "/dashboard/admin/sms-gateway", "/dashboard/admin/sms-logs", "/setup"],
-      FACULTY: ["/dashboard/faculty", "/dashboard/student"],
+      SUPERADMIN: ["/dashboard"],
+      ADMIN: ["/dashboard"],
+      MANAGEMENT: ["/dashboard/principal", "/dashboard/management", "/dashboard/admin", "/dashboard/student", "/dashboard/timetable", "/setup"],
+      FACULTY: ["/dashboard/faculty", "/dashboard/student", "/dashboard/management/attendance-sheet"],
       STUDENT: ["/dashboard/student"],
     };
 
     const defaultRedirects: Record<string, string> = {
       SUPERADMIN: "/dashboard/superadmin",
+      ADMIN: "/dashboard/principal",
       MANAGEMENT: "/dashboard/principal",
       FACULTY: "/dashboard/faculty",
       STUDENT: "/dashboard/student",
