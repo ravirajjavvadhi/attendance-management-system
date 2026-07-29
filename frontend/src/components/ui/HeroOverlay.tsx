@@ -27,6 +27,9 @@ export default function HeroOverlay() {
           className="flex flex-col items-center"
         >
           <div className="w-4 h-4 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_30px_10px_rgba(99,102,241,0.5)] mb-8" />
+          <p className="text-xl md:text-2xl text-zinc-400 font-light tracking-widest uppercase mb-4 mix-blend-difference">
+            KevRyn Presents
+          </p>
           <h1 className="text-7xl md:text-9xl font-bold tracking-tighter mix-blend-difference z-20">
             EduFlow
           </h1>
