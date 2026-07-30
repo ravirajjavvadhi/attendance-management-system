@@ -50,8 +50,9 @@ def get_attendance_status(
         ]
     }
 
-@router.get("/stats/today")
+@router.get("/stats/overview")
 def get_today_stats(
+    date: str = None,
     tenant_id: int = None,
     db: Session = Depends(get_db),
     current_management: User = Depends(get_current_management_or_faculty)
@@ -59,7 +60,11 @@ def get_today_stats(
     from sqlalchemy import func
     from zoneinfo import ZoneInfo
     from datetime import datetime
-    today = datetime.now(ZoneInfo('Asia/Kolkata')).date()
+    
+    if date:
+        target_date = datetime.strptime(date, "%Y-%m-%d").date()
+    else:
+        target_date = datetime.now(ZoneInfo('Asia/Kolkata')).date()
     
     # SuperAdmin, Admin, Management or Principal can specify tenant_id to view overview, or auto-detect active tenant
     active_tenant_id = current_management.tenant_id
@@ -86,22 +91,19 @@ def get_today_stats(
     if total_students == 0:
         total_students = db.query(func.count(StudentProfile.id)).scalar() or 0
         
-    # Attendance for today (check Period 1 or any period today)
+    # Attendance for target_date
     attendance_records = db.query(AttendanceRecord).filter(
         AttendanceRecord.tenant_id == active_tenant_id,
-        AttendanceRecord.date == today
+        AttendanceRecord.date == target_date
     ).all()
     if not attendance_records:
-        attendance_records = db.query(AttendanceRecord).filter(AttendanceRecord.date == today).all()
-    # If no attendance is marked for today yet, fetch the latest recorded date in the system so the dashboard is never empty!
-    if not attendance_records:
-        latest_rec = db.query(AttendanceRecord).order_by(AttendanceRecord.date.desc()).first()
-        if latest_rec:
-            attendance_records = db.query(AttendanceRecord).filter(AttendanceRecord.date == latest_rec.date).all()
+        attendance_records = db.query(AttendanceRecord).filter(AttendanceRecord.date == target_date).all()
     
+    marked_student_ids = {r.student_id for r in attendance_records}
     present_student_ids = {r.student_id for r in attendance_records if r.is_present}
+    
     present_today = len(present_student_ids)
-    absent_today = total_students - present_today if total_students >= present_today else 0
+    absent_today = len(marked_student_ids) - present_today
     
     # Low attendance alerts (students with < 75% attendance)
     from app.models.notification import NotificationLog
@@ -192,7 +194,7 @@ def get_today_stats(
      .join(Department, Class.department_id == Department.id) \
      .filter(
         AttendanceRecord.is_present == True,
-        AttendanceRecord.date == (attendance_records[0].date if attendance_records else today)
+        AttendanceRecord.date == target_date
     ).group_by(Department.name).all()
     
     dept_presents = {name: count for name, count in present_dept_stats}
@@ -213,7 +215,7 @@ def get_today_stats(
         "total_students": total_students,
         "present_today": present_today,
         "absent_today": absent_today,
-        "attendance_rate": f"{(present_today / total_students * 100):.1f}%" if total_students > 0 else "0%",
+        "attendance_rate": f"{(present_today / len(marked_student_ids) * 100):.1f}%" if len(marked_student_ids) > 0 else "0%",
         "alerts": alerts[:5], # top 5 lowest
         "notifications": notifications,
         "department_overview": department_overview

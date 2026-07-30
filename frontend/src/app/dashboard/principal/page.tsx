@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 export default function PrincipalDashboard() {
   const { data: session } = useSession();
   const token = (session as any)?.accessToken;
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
   
   const [stats, setStats] = useState({
     total_students: 0,
@@ -24,7 +25,7 @@ export default function PrincipalDashboard() {
       if (!token) return;
       try {
         const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
-        const res = await fetch(`${baseUrl}/api/v1/attendance/stats/today`, {
+        const res = await fetch(`${baseUrl}/api/v1/attendance/stats/overview?date=${selectedDate}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -38,7 +39,7 @@ export default function PrincipalDashboard() {
       }
     };
     fetchStats();
-  }, [token]);
+  }, [token, selectedDate]);
 
   const [selectedNotification, setSelectedNotification] = useState<any | null>(null);
 
@@ -89,10 +90,15 @@ export default function PrincipalDashboard() {
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Overview</h1>
-          <p className="text-muted-foreground mt-1">Here's what's happening at your institution today.</p>
+          <p className="text-muted-foreground mt-1">Here's what's happening at your institution.</p>
         </div>
-        <div className="text-sm font-medium px-4 py-2 bg-secondary rounded-lg border">
-          {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        <div className="flex items-center gap-2">
+          <input 
+            type="date" 
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="text-sm font-medium px-4 py-2 bg-secondary rounded-lg border focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
         </div>
       </div>
       
