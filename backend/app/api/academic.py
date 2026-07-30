@@ -55,17 +55,36 @@ def delete_department(
     db.commit()
     return {"message": "Department deleted"}
 
-@router.post("/classes", status_code=status.HTTP_201_CREATED)
+@router.post("/classes")
 def create_class(
-    request: ClassCreate,
+    cls: ClassCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin)
+    current_management: User = Depends(get_current_management)
 ):
-    new_class = Class(name=request.name, department_id=request.department_id, tenant_id=current_user.tenant_id)
+    new_class = Class(name=cls.name, department_id=cls.department_id, tenant_id=current_management.tenant_id)
     db.add(new_class)
     db.commit()
     db.refresh(new_class)
     return new_class
+
+@router.put("/classes/{class_id}")
+def update_class(
+    class_id: int,
+    cls_update: ClassCreate,
+    db: Session = Depends(get_db),
+    current_management: User = Depends(get_current_management)
+):
+    db_class = db.query(Class).filter(Class.id == class_id, Class.tenant_id == current_management.tenant_id).first()
+    if not db_class:
+        raise HTTPException(status_code=404, detail="Class not found")
+    
+    db_class.name = cls_update.name
+    if cls_update.department_id:
+        db_class.department_id = cls_update.department_id
+        
+    db.commit()
+    db.refresh(db_class)
+    return db_class
 
 @router.get("/classes")
 def get_classes(

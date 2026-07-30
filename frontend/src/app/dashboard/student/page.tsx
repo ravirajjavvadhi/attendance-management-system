@@ -52,8 +52,41 @@ export default function StudentManagement() {
   
   const [newDeptName, setNewDeptName] = useState("");
   const [newDeptCode, setNewDeptCode] = useState("");
-  const [newClassName, setNewClassName] = useState("");
+  
+  // B.Tech Specific Class Structure
+  const [newClassYear, setNewClassYear] = useState("");
+  const [newClassSem, setNewClassSem] = useState("");
   const [newClassDeptId, setNewClassDeptId] = useState("");
+  
+  // Promotion State
+  const [promotingClass, setPromotingClass] = useState<any | null>(null);
+  const [promoteYear, setPromoteYear] = useState("");
+  const [promoteSem, setPromoteSem] = useState("");
+  
+  const handleOpenPromote = (c: any) => {
+    setPromotingClass(c);
+    
+    // Smart Increment Logic
+    let currentYearMatch = c.name.match(/(\d)(?:st|nd|rd|th)\s*Year/i);
+    let currentSemMatch = c.name.match(/Sem(?:ester)?\s*(\d)/i);
+    
+    if (currentSemMatch || currentYearMatch) {
+      let sem = currentSemMatch ? parseInt(currentSemMatch[1]) : 1;
+      let nextSem = sem + 1;
+      if (nextSem > 8) nextSem = 8;
+      
+      let nextYearNum = Math.ceil(nextSem / 2);
+      let suffixes = ["th", "st", "nd", "rd"];
+      let suffix = (nextYearNum % 10 < 4 && nextYearNum % 10 > 0 && (nextYearNum % 100 < 10 || nextYearNum % 100 > 20)) ? suffixes[nextYearNum % 10] : suffixes[0];
+      
+      setPromoteYear(`${nextYearNum}${suffix} Year`);
+      setPromoteSem(`Sem ${nextSem}`);
+    } else {
+      setPromoteYear("");
+      setPromoteSem("");
+    }
+  };
+
   const [newSectionName, setNewSectionName] = useState("");
   const [setupClassId, setSetupClassId] = useState("");
 
@@ -120,18 +153,48 @@ export default function StudentManagement() {
 
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) return;
+    if (!token || !newClassYear) return;
     setIsSubmitting(true);
+    
+    const formattedClassName = newClassSem ? `${newClassYear} - ${newClassSem}` : newClassYear;
+    
     try {
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/v1/academic/classes`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: newClassName, department_id: newClassDeptId ? parseInt(newClassDeptId) : null })
+        body: JSON.stringify({ name: formattedClassName, department_id: newClassDeptId ? parseInt(newClassDeptId) : null })
       });
       if (res.ok) {
-        setNewClassName("");
+        setNewClassYear("");
+        setNewClassSem("");
         setNewClassDeptId("");
+        fetchData();
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePromoteClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !promotingClass || !promoteYear) return;
+    setIsSubmitting(true);
+    
+    const formattedClassName = promoteSem ? `${promoteYear} - ${promoteSem}` : promoteYear;
+    
+    try {
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "https://attendance-management-system-agob.onrender.com").replace(/\/$/, "");
+      const res = await fetch(`${baseUrl}/api/v1/academic/classes/${promotingClass.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ 
+          name: formattedClassName, 
+          department_id: promotingClass.department_id 
+        })
+      });
+      if (res.ok) {
+        setPromotingClass(null);
         fetchData();
       }
     } finally {
@@ -317,7 +380,7 @@ export default function StudentManagement() {
 
             {/* Step 2: Class/Year */}
             <div className="space-y-4 border-r pr-4">
-              <h4 className="font-semibold text-sm text-blue-500">2. Class / Year (e.g. "1st Year", "B.Tech")</h4>
+              <h4 className="font-semibold text-sm text-blue-500">2. Class / Year / Semester</h4>
               <form onSubmit={handleCreateClass} className="flex flex-col gap-2">
                 <select 
                   required
@@ -329,14 +392,26 @@ export default function StudentManagement() {
                   {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
                 <div className="flex gap-2">
-                  <input
-                    type="text"
+                  <select
                     required
-                    value={newClassName}
-                    onChange={(e) => setNewClassName(e.target.value)}
-                    placeholder="Class Name"
-                    className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
+                    value={newClassYear}
+                    onChange={(e) => setNewClassYear(e.target.value)}
+                    className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    <option value="">Select Year...</option>
+                    <option value="1st Year">1st Year</option>
+                    <option value="2nd Year">2nd Year</option>
+                    <option value="3rd Year">3rd Year</option>
+                    <option value="4th Year">4th Year</option>
+                  </select>
+                  <select
+                    value={newClassSem}
+                    onChange={(e) => setNewClassSem(e.target.value)}
+                    className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    <option value="">Sem (Opt)</option>
+                    {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={`Sem ${s}`}>Sem {s}</option>)}
+                  </select>
                   <button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium">Add</button>
                 </div>
               </form>
@@ -344,7 +419,15 @@ export default function StudentManagement() {
                 {classes.map(c => {
                   const dept = departments.find(d => d.id === c.department_id);
                   const deptName = dept ? ` (${dept.code || dept.name})` : "";
-                  return <span key={c.id} className="bg-blue-500/10 text-blue-600 border border-blue-500/20 px-3 py-1 rounded-full text-xs font-medium">{c.name}{deptName}</span>;
+                  return (
+                    <span key={c.id} className="flex items-center gap-1 bg-blue-500/10 text-blue-600 border border-blue-500/20 px-3 py-1 rounded-full text-xs font-medium">
+                      {c.name}{deptName}
+                      <button onClick={() => handleOpenPromote(c)} className="ml-1 hover:text-blue-400 transition-colors" title="Smart Promote Class">
+                        <Zap className="w-3 h-3" />
+                      </button>
+                      <button onClick={() => handleDeleteClass(c.id)} className="ml-1 hover:text-red-500 transition-colors">×</button>
+                    </span>
+                  );
                 })}
               </div>
             </div>
@@ -460,6 +543,46 @@ export default function StudentManagement() {
               </div>
             </form>
           )}
+        </div>
+      )}
+
+      {/* Promote Class Modal */}
+      {promotingClass && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
+          <div className="bg-background border rounded-2xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Zap className="w-5 h-5 text-blue-500" /> Smart Promote</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              You are promoting <strong>{promotingClass.name}</strong>. We've auto-calculated the next logical semester for you.
+            </p>
+            <form onSubmit={handlePromoteClass} className="space-y-4">
+              <div className="flex gap-2">
+                <select
+                  required
+                  value={promoteYear}
+                  onChange={(e) => setPromoteYear(e.target.value)}
+                  className="w-1/2 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                >
+                  <option value="">Select Year...</option>
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                </select>
+                <select
+                  value={promoteSem}
+                  onChange={(e) => setPromoteSem(e.target.value)}
+                  className="w-1/2 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                >
+                  <option value="">Sem (Opt)</option>
+                  {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={`Sem ${s}`}>Sem {s}</option>)}
+                </select>
+              </div>
+              <div className="flex gap-3 justify-end mt-4">
+                <button type="button" onClick={() => setPromotingClass(null)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium">Update Class</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
