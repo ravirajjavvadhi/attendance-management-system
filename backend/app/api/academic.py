@@ -59,9 +59,9 @@ def delete_department(
 def create_class(
     cls: ClassCreate,
     db: Session = Depends(get_db),
-    current_management: User = Depends(get_current_management)
+    current_admin: User = Depends(get_current_admin)
 ):
-    new_class = Class(name=cls.name, department_id=cls.department_id, tenant_id=current_management.tenant_id)
+    new_class = Class(name=cls.name, department_id=cls.department_id, tenant_id=current_admin.tenant_id)
     db.add(new_class)
     db.commit()
     db.refresh(new_class)
@@ -72,9 +72,9 @@ def update_class(
     class_id: int,
     cls_update: ClassCreate,
     db: Session = Depends(get_db),
-    current_management: User = Depends(get_current_management)
+    current_admin: User = Depends(get_current_admin)
 ):
-    db_class = db.query(Class).filter(Class.id == class_id, Class.tenant_id == current_management.tenant_id).first()
+    db_class = db.query(Class).filter(Class.id == class_id, Class.tenant_id == current_admin.tenant_id).first()
     if not db_class:
         raise HTTPException(status_code=404, detail="Class not found")
     

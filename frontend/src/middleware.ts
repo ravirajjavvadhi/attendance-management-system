@@ -39,6 +39,12 @@ export default withAuth(
         return NextResponse.redirect(new URL(`/login${errorMsg}`, req.url));
       }
       
+      // If navigating exactly to /dashboard, redirect to role-specific dashboard
+      if (path === "/dashboard") {
+        const destination = defaultRedirects[role] || "/login";
+        return NextResponse.redirect(new URL(destination, req.url));
+      }
+      
       allowed = isRouteAllowed(path, role);
       
       if (!allowed) {
@@ -58,5 +64,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/setup"],
+  matcher: ["/dashboard/:path*", "/dashboard", "/setup"],
 };
