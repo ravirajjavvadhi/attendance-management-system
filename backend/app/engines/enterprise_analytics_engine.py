@@ -48,27 +48,6 @@ class EnterpriseAnalyticsEngine:
 
         subjects = db.query(Subject).filter(Subject.id.in_(subj_id_list)).all() if subj_id_list else []
         
-        # Build Table Columns
-        columns = [
-            {"key": "roll_number", "label": "Roll No", "type": "text"},
-            {"key": "student_name", "label": "Student Name", "type": "text"}
-        ]
-        for subj in subjects:
-            disp = SubjectCodeService.get_display_code(subj)
-            columns.append({"key": f"subj_{subj.id}_cond", "label": f"{disp} Cond", "type": "number", "subject_name": subj.name, "subject_code": disp})
-            columns.append({"key": f"subj_{subj.id}_att", "label": f"{disp} Att", "type": "number", "subject_name": subj.name, "subject_code": disp})
-            columns.append({"key": f"subj_{subj.id}_pct", "label": f"{disp} %", "type": "percentage", "subject_name": subj.name, "subject_code": disp})
-
-        columns.extend([
-            {"key": "total_conducted", "label": "Classes Conducted", "type": "number"},
-            {"key": "total_attended", "label": "Classes Attended", "type": "number"},
-            {"key": "overall_percentage", "label": "Overall %", "type": "percentage"},
-            {"key": "medical_leave", "label": "ML", "type": "number"},
-            {"key": "on_duty", "label": "OD", "type": "number"},
-            {"key": "shortage_percentage", "label": "Shortage %", "type": "percentage"},
-            {"key": "warning_badge", "label": "75% Warning", "type": "badge"}
-        ])
-
         # Fetch materialized summaries in bulk
         summaries = db.query(AttendanceSummary).filter(
             AttendanceSummary.tenant_id == tenant_id,
@@ -78,6 +57,34 @@ class EnterpriseAnalyticsEngine:
             summaries = summaries.filter(AttendanceSummary.academic_session_id == session_id)
         sum_list = summaries.all()
         sum_map = {(s.student_id, s.subject_id): s for s in sum_list if s.month is None}
+
+        # Build Table Columns
+        columns = [
+            {"key": "roll_number", "label": "Roll Number", "type": "text"},
+            {"key": "student_name", "label": "Name", "type": "text"}
+        ]
+        
+        for subj in subjects:
+            # We want short names like 'DM', 'COA', 'JAVA' if possible. We split the full name or use it entirely.
+            words = subj.name.split() if subj.name else ["SUBJ"]
+            disp_name = words[0].upper() if len(words) == 1 else "".join(w[0].upper() for w in words if w)
+            if subj.name and len(subj.name) <= 8:
+                disp_name = subj.name.upper()
+
+            # Find maximum conducted for this subject across students
+            max_cond = max([s.total_classes for s in sum_list if s.subject_id == subj.id] + [0])
+            columns.append({
+                "key": f"subj_{subj.id}_att", 
+                "label": disp_name, 
+                "full_name": subj.name,
+                "type": "subject_attendance", 
+                "conducted": max_cond
+            })
+
+        columns.extend([
+            {"key": "total_attended", "label": "TOTAL", "type": "number"},
+            {"key": "overall_percentage", "label": "(%)", "type": "percentage"}
+        ])
 
         rows = []
         shortage_count = 0
@@ -90,25 +97,16 @@ class EnterpriseAnalyticsEngine:
 
             tot_cond = 0
             tot_att = 0
-            tot_ml = 0
-            tot_od = 0
 
             for subj in subjects:
                 s_sum = sum_map.get((std.id, subj.id))
                 if s_sum:
-                    c_cond = s_sum.total_classes
                     c_att = s_sum.attended_classes
-                    c_pct = s_sum.percentage
                 else:
-                    # Instant calculate from records if summary missing
                     recs = db.query(AttendanceRecord).filter(AttendanceRecord.student_id == std.id, AttendanceRecord.subject_id == subj.id).all()
-                    c_cond = len(recs)
                     c_att = sum(1 for r in recs if r.is_present or r.status in [AttendanceStatusEnum.PRESENT.value, AttendanceStatusEnum.ON_DUTY.value])
-                    c_pct = round((c_att / c_cond) * 100.0, 1) if c_cond > 0 else 100.0
                 
-                row[f"subj_{subj.id}_cond"] = c_cond
                 row[f"subj_{subj.id}_att"] = c_att
-                row[f"subj_{subj.id}_pct"] = c_pct
 
             # Overall calculations
             ov_sum = sum_map.get((std.id, None))
@@ -116,32 +114,20 @@ class EnterpriseAnalyticsEngine:
                 tot_cond = ov_sum.total_classes
                 tot_att = ov_sum.attended_classes
                 ov_pct = ov_sum.percentage
-                tot_ml = ov_sum.medical_leave_count
-                tot_od = ov_sum.od_count
-                short_pct = ov_sum.shortage_percentage
                 is_short = ov_sum.is_shortage
             else:
                 all_recs = db.query(AttendanceRecord).filter(AttendanceRecord.student_id == std.id).all()
                 tot_cond = len(all_recs)
                 tot_att = sum(1 for r in all_recs if r.is_present or r.status in [AttendanceStatusEnum.PRESENT.value, AttendanceStatusEnum.ON_DUTY.value])
-                tot_ml = sum(1 for r in all_recs if r.status == AttendanceStatusEnum.MEDICAL_LEAVE.value)
-                tot_od = sum(1 for r in all_recs if r.status == AttendanceStatusEnum.ON_DUTY.value)
                 ov_pct = round((tot_att / tot_cond) * 100.0, 1) if tot_cond > 0 else 100.0
                 is_short = ov_pct < 75.0
-                short_pct = round(75.0 - ov_pct, 1) if is_short else 0.0
 
             if is_short:
                 shortage_count += 1
 
             row.update({
-                "total_conducted": tot_cond,
                 "total_attended": tot_att,
-                "overall_percentage": ov_pct,
-                "medical_leave": tot_ml,
-                "on_duty": tot_od,
-                "shortage_percentage": short_pct,
-                "warning_badge": "SHORTAGE (<75%)" if is_short else "GOOD (>=75%)",
-                "is_warning": is_short
+                "overall_percentage": ov_pct
             })
             rows.append(row)
 
