@@ -270,7 +270,37 @@ class _ManagementPage extends StatelessWidget {
 
 class _WorkspaceHero extends StatelessWidget { const _WorkspaceHero({required this.eyebrow, required this.title, required this.body}); final String eyebrow; final String title; final String body; @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(borderRadius: BorderRadius.circular(26), gradient: const LinearGradient(colors: [Color(0xFF1C255D), Color(0xFF614FEF)])), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(eyebrow, style: const TextStyle(color: Color(0xFFBFEFFD), fontWeight: FontWeight.w800, letterSpacing: 1.1)), const SizedBox(height: 8), Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)), const SizedBox(height: 6), Text(body, style: const TextStyle(color: Color(0xFFE5E9FF), height: 1.35))])); }
 class _MetricData { const _MetricData(this.label, this.value, this.icon); final String label; final String value; final IconData icon; }
-class _MetricWrap extends StatelessWidget { const _MetricWrap({required this.metrics}); final List<_MetricData> metrics; @override Widget build(BuildContext context) => Wrap(spacing: 8, runSpacing: 8, children: metrics.map((metric) => SizedBox(width: 155, child: Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(metric.icon, color: Theme.of(context).colorScheme.primary), const SizedBox(height: 10), Text(metric.value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)), Text(metric.label, style: Theme.of(context).textTheme.bodySmall)])))).toList()); }
+class _MetricWrap extends StatelessWidget {
+  const _MetricWrap({required this.metrics});
+  final List<_MetricData> metrics;
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: metrics
+            .map(
+              (metric) => SizedBox(
+                width: 155,
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(metric.icon, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(height: 10),
+                        Text(metric.value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                        Text(metric.label, style: Theme.of(context).textTheme.bodySmall),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      );
+}
 class _Heading extends StatelessWidget { const _Heading({required this.title, required this.caption}); final String title; final String caption; @override Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)), const SizedBox(height: 3), Text(caption, style: Theme.of(context).textTheme.bodySmall)]); }
 class _DepartmentTile extends StatelessWidget { const _DepartmentTile({required this.item}); final Map<String, dynamic> item; @override Widget build(BuildContext context) { final rate = _number(item['rate']); return Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Expanded(child: Text(item['department']?.toString() ?? 'Department', style: const TextStyle(fontWeight: FontWeight.w700))), Text('${rate.toStringAsFixed(1)}%')]), const SizedBox(height: 10), LinearProgressIndicator(value: (rate / 100).clamp(0, 1).toDouble())]))); } }
 class _EmptyCard extends StatelessWidget { const _EmptyCard(this.message); final String message; @override Widget build(BuildContext context) => Card(child: Padding(padding: const EdgeInsets.all(18), child: Text(message))); }
