@@ -38,7 +38,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final dio = ref.read(dioClientProvider).dio;
       final response = await dio.post(
         '/auth/passwordless',
-        data: {'email': email},
+        data: {'email': email, 'expected_role': 'PARENT'},
       );
 
       final token = response.data['access_token'];

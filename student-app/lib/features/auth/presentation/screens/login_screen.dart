@@ -33,6 +33,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         '/auth/passwordless',
         data: {
           'email': rollNumber,
+          'expected_role': 'STUDENT',
         },
       );
 

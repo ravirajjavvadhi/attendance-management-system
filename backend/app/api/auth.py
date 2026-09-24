@@ -96,10 +96,15 @@ def login_google(request: GoogleAuthRequest, db: Session = Depends(get_db)):
 
 class PasswordlessAuthRequest(BaseModel):
     email: str
+    expected_role: Optional[str] = None
 
 @router.post("/passwordless", response_model=Token)
 def login_passwordless(request: PasswordlessAuthRequest, db: Session = Depends(get_db)):
     from sqlalchemy import func
+    requested_role = request.expected_role.strip().upper() if request.expected_role else None
+    allowed_roles = {"PARENT", "FACULTY", "STUDENT", "MANAGEMENT", "ADMIN", "SUPERADMIN"}
+    if requested_role and requested_role not in allowed_roles:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unsupported account type.")
     users = db.query(User).filter(
         (func.lower(User.email) == func.lower(request.email)) | (User.mobile_number == request.email)
     ).all()
@@ -108,7 +113,7 @@ def login_passwordless(request: PasswordlessAuthRequest, db: Session = Depends(g
         # Check if request.email matches a student's roll_number
         from app.models.profiles import StudentProfile
         student = db.query(StudentProfile).filter(func.lower(StudentProfile.roll_number) == func.lower(request.email)).first()
-        if student:
+        if student and requested_role in (None, "STUDENT"):
             if not student.user_id:
                 from app.models.academic import Section
                 from app.models.user import UserRole
@@ -147,8 +152,14 @@ def login_passwordless(request: PasswordlessAuthRequest, db: Session = Depends(g
             detail="Roll number not found. Please check your roll number or contact your institution.",
         )
         
-    role_priority = {"SUPERADMIN": 1, "MANAGEMENT": 2, "ADMIN": 3, "FACULTY": 4, "STUDENT": 5, "PARENT": 6}
-    user = min(users, key=lambda u: role_priority.get(u.role, 99))
+    if requested_role:
+        users = [user for user in users if user.role == requested_role or (requested_role == "MANAGEMENT" and user.role in {"ADMIN", "SUPERADMIN"})]
+        if not users:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This account is not authorised for the selected workspace.")
+    elif len({user.role for user in users}) > 1:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This email has more than one account role. Sign in from the correct workspace.")
+
+    user = users[0]
     
     if not user.is_active:
         raise HTTPException(
