@@ -1,0 +1,505 @@
+{
+  "transaction_read_only": "on",
+  "tables": {
+    "academic_sessions": [
+      "id",
+      "tenant_id",
+      "academic_year",
+      "semester",
+      "term",
+      "status",
+      "start_date",
+      "end_date",
+      "is_current",
+      "previous_session_id",
+      "next_session_id",
+      "created_at",
+      "archived_at"
+    ],
+    "academic_years": [
+      "id",
+      "tenant_id",
+      "name",
+      "start_date",
+      "end_date",
+      "is_current"
+    ],
+    "assignment_submissions": [
+      "id",
+      "assignment_id",
+      "student_id",
+      "submitted_at",
+      "marks_awarded",
+      "feedback",
+      "file_url"
+    ],
+    "assignments": [
+      "id",
+      "tenant_id",
+      "faculty_user_id",
+      "subject_id",
+      "title",
+      "description",
+      "deadline",
+      "max_marks"
+    ],
+    "attendance_records": [
+      "id",
+      "tenant_id",
+      "student_id",
+      "section_id",
+      "date",
+      "is_present",
+      "marked_by",
+      "period",
+      "subject_id",
+      "session_id",
+      "academic_session_id",
+      "status"
+    ],
+    "attendance_sessions": [
+      "id",
+      "tenant_id",
+      "timetable_id",
+      "date",
+      "status",
+      "faculty_user_id",
+      "academic_session_id"
+    ],
+    "attendance_summaries": [
+      "id",
+      "tenant_id",
+      "student_id",
+      "subject_id",
+      "month",
+      "total_classes",
+      "attended_classes",
+      "percentage",
+      "academic_session_id",
+      "medical_leave_count",
+      "od_count",
+      "shortage_percentage",
+      "is_shortage"
+    ],
+    "calendar_days": [
+      "id",
+      "semester_term_id",
+      "date",
+      "day_type",
+      "description",
+      "is_attendance_required"
+    ],
+    "campus_notices": [
+      "id",
+      "tenant_id",
+      "notice_type",
+      "title",
+      "content",
+      "created_at"
+    ],
+    "classes": [
+      "id",
+      "tenant_id",
+      "course_id",
+      "name",
+      "department_id"
+    ],
+    "courses": [
+      "id",
+      "tenant_id",
+      "department_id",
+      "name"
+    ],
+    "department_summaries": [
+      "id",
+      "tenant_id",
+      "department_id",
+      "academic_session_id",
+      "total_students",
+      "average_attendance_rate",
+      "best_section_id",
+      "lowest_attendance_section_id",
+      "shortage_student_count"
+    ],
+    "departments": [
+      "id",
+      "tenant_id",
+      "name",
+      "code"
+    ],
+    "devices": [
+      "id",
+      "tenant_id",
+      "device_name",
+      "device_uuid",
+      "pairing_token",
+      "jwt_identifier",
+      "status",
+      "battery_percentage",
+      "signal_strength",
+      "sim_operator",
+      "sim_slot",
+      "last_seen",
+      "created_at",
+      "updated_at",
+      "is_charging",
+      "app_version",
+      "foreground_service_running",
+      "network_type",
+      "storage_remaining",
+      "ram_usage",
+      "android_version"
+    ],
+    "erp_ai_insights": [
+      "id",
+      "tenant_id",
+      "student_id",
+      "insight_text",
+      "date"
+    ],
+    "erp_branches": [
+      "id",
+      "tenant_id",
+      "department_id",
+      "name",
+      "code"
+    ],
+    "erp_faculty_remarks": [
+      "id",
+      "tenant_id",
+      "student_id",
+      "faculty_id",
+      "remark",
+      "created_at"
+    ],
+    "erp_faculty_subject_allocations": [
+      "id",
+      "tenant_id",
+      "faculty_user_id",
+      "subject_id",
+      "section_id",
+      "academic_year_id"
+    ],
+    "erp_leave_requests": [
+      "id",
+      "tenant_id",
+      "student_id",
+      "start_date",
+      "end_date",
+      "reason",
+      "status",
+      "created_at"
+    ],
+    "erp_periods": [
+      "id",
+      "tenant_id",
+      "name",
+      "period_number",
+      "start_time",
+      "end_time",
+      "is_break"
+    ],
+    "erp_semester_results": [
+      "id",
+      "tenant_id",
+      "student_id",
+      "semester_id",
+      "sgpa",
+      "credits_earned"
+    ],
+    "erp_semesters": [
+      "id",
+      "tenant_id",
+      "academic_year_id",
+      "branch_id",
+      "name",
+      "term_number"
+    ],
+    "erp_student_documents": [
+      "id",
+      "tenant_id",
+      "student_id",
+      "title",
+      "category",
+      "file_url",
+      "created_at"
+    ],
+    "erp_subject_marks": [
+      "id",
+      "tenant_id",
+      "result_id",
+      "subject_id",
+      "marks_obtained",
+      "grade"
+    ],
+    "erp_subjects": [
+      "id",
+      "tenant_id",
+      "branch_id",
+      "semester_id",
+      "name",
+      "code",
+      "credits",
+      "subject_type",
+      "prerequisites",
+      "outcomes",
+      "is_elective",
+      "generated_code",
+      "is_auto_generated"
+    ],
+    "erp_timetable": [
+      "id",
+      "tenant_id",
+      "academic_year_id",
+      "section_id",
+      "period_id",
+      "day_of_week",
+      "subject_id",
+      "faculty_user_id",
+      "room_number",
+      "academic_session_id"
+    ],
+    "events": [
+      "id",
+      "tenant_id",
+      "title",
+      "description",
+      "event_date",
+      "created_at",
+      "category",
+      "priority",
+      "target_audience",
+      "academic_session_id"
+    ],
+    "exam_results": [
+      "id",
+      "exam_id",
+      "student_id",
+      "subject_id",
+      "marks_obtained",
+      "max_marks",
+      "cgpa_mapping"
+    ],
+    "exams": [
+      "id",
+      "tenant_id",
+      "academic_year_id",
+      "name",
+      "exam_type",
+      "date"
+    ],
+    "faculty_comments": [
+      "id",
+      "tenant_id",
+      "student_id",
+      "faculty_user_id",
+      "comment",
+      "created_at"
+    ],
+    "faculty_profiles": [
+      "id",
+      "user_id",
+      "name",
+      "employee_id",
+      "department_id",
+      "access_level"
+    ],
+    "faculty_section_assignments": [
+      "id",
+      "faculty_user_id",
+      "section_id",
+      "subject_id"
+    ],
+    "faculty_summaries": [
+      "id",
+      "tenant_id",
+      "faculty_user_id",
+      "academic_session_id",
+      "total_assigned_periods",
+      "periods_completed",
+      "pending_submissions",
+      "attendance_completion_rate"
+    ],
+    "institution_modules": [
+      "id",
+      "tenant_id",
+      "has_parent_app",
+      "has_student_app",
+      "has_fees",
+      "has_hostel",
+      "has_library",
+      "has_bus_tracking",
+      "has_placement",
+      "has_ai_analytics",
+      "has_inventory",
+      "has_visitor_management",
+      "has_alumni"
+    ],
+    "institution_summaries": [
+      "id",
+      "tenant_id",
+      "academic_session_id",
+      "date",
+      "total_students",
+      "present_today",
+      "absent_today",
+      "attendance_rate",
+      "department_rankings_json"
+    ],
+    "institutions": [
+      "id",
+      "name",
+      "subdomain",
+      "type",
+      "logo_url",
+      "is_active",
+      "created_at",
+      "updated_at",
+      "periods_per_day",
+      "notification_preference",
+      "max_sms_per_device_per_day",
+      "sms_engine"
+    ],
+    "notification_logs": [
+      "id",
+      "tenant_id",
+      "channel",
+      "recipient",
+      "status",
+      "message",
+      "provider_response",
+      "device_id",
+      "created_at",
+      "title",
+      "event_type",
+      "entity_type",
+      "entity_id",
+      "is_read",
+      "read_at",
+      "deleted_by_parent",
+      "student_id"
+    ],
+    "parent_profiles": [
+      "id",
+      "user_id",
+      "name",
+      "email",
+      "pin_hash",
+      "device_token",
+      "biometric_enabled",
+      "status"
+    ],
+    "parent_student_links": [
+      "id",
+      "parent_id",
+      "student_id",
+      "relationship",
+      "is_primary",
+      "receive_notifications",
+      "receive_sms",
+      "receive_push"
+    ],
+    "sections": [
+      "id",
+      "tenant_id",
+      "class_id",
+      "name",
+      "admission_year",
+      "academic_session_id"
+    ],
+    "semester_terms": [
+      "id",
+      "academic_year_id",
+      "name",
+      "start_date",
+      "end_date"
+    ],
+    "sms_queue": [
+      "id",
+      "tenant_id",
+      "recipient_name",
+      "recipient_phone",
+      "message",
+      "status",
+      "retry_count",
+      "priority",
+      "source_module",
+      "created_at",
+      "updated_at",
+      "processing_started_at",
+      "processed_by_device_id",
+      "message_uuid",
+      "priority_level",
+      "delivery_status"
+    ],
+    "sms_templates": [
+      "id",
+      "tenant_id",
+      "absent_message",
+      "late_message"
+    ],
+    "student_profiles": [
+      "id",
+      "user_id",
+      "name",
+      "roll_number",
+      "admission_number",
+      "section_id",
+      "parent_name",
+      "parent_mobile",
+      "parent_email",
+      "address"
+    ],
+    "subject_summaries": [
+      "id",
+      "tenant_id",
+      "subject_id",
+      "section_id",
+      "academic_session_id",
+      "total_sessions_conducted",
+      "total_student_attendances",
+      "total_presents",
+      "average_percentage",
+      "shortage_student_count"
+    ],
+    "timeline_events": [
+      "id",
+      "tenant_id",
+      "user_id",
+      "event_type",
+      "description",
+      "timestamp"
+    ],
+    "users": [
+      "id",
+      "tenant_id",
+      "email",
+      "mobile_number",
+      "hashed_password",
+      "role",
+      "is_active",
+      "created_at",
+      "updated_at"
+    ]
+  },
+  "model_column_gaps": [],
+  "counts": {
+    "institutions": 2,
+    "users": 9,
+    "student_profiles": 64,
+    "faculty_profiles": 1,
+    "parent_profiles": 4,
+    "parent_student_links": 4,
+    "academic_sessions": 0,
+    "erp_timetable": 30,
+    "attendance_records": 924,
+    "sms_queue": 36
+  },
+  "role_counts": {
+    "FACULTY": 1,
+    "MANAGEMENT": 1,
+    "PARENT": 3,
+    "STUDENT": 1,
+    "SUPERADMIN": 3
+  }
+}

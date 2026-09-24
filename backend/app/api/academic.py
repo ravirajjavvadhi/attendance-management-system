@@ -126,6 +126,14 @@ def assign_faculty_to_section(
     section = query.first()
     if not section:
         raise HTTPException(status_code=404, detail="Section not found")
+
+    faculty = db.query(User).filter(
+        User.id == faculty_user_id,
+        User.tenant_id == current_user.tenant_id,
+        User.role == UserRole.FACULTY.value,
+    ).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty member not found")
         
     # Check if already assigned
     existing = db.query(FacultySectionAssignment).filter(
@@ -165,6 +173,37 @@ def revoke_faculty_from_section(
         db.commit()
     return {"message": "Assignment revoked successfully"}
 
+@router.get("/sections/{section_id}/assignments", status_code=status.HTTP_200_OK)
+def get_section_faculty_assignments(
+    section_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    """List the authorised faculty members for one tenant-scoped section."""
+    from app.models.profiles import FacultyProfile, FacultySectionAssignment
+
+    section = db.query(Section).filter(
+        Section.id == section_id,
+        Section.tenant_id == current_user.tenant_id,
+    ).first()
+    if not section:
+        raise HTTPException(status_code=404, detail="Section not found")
+
+    rows = db.query(User, FacultyProfile).join(
+        FacultySectionAssignment,
+        FacultySectionAssignment.faculty_user_id == User.id,
+    ).outerjoin(FacultyProfile, FacultyProfile.user_id == User.id).filter(
+        FacultySectionAssignment.section_id == section_id,
+        User.tenant_id == current_user.tenant_id,
+        User.role == UserRole.FACULTY.value,
+    ).all()
+    return [{
+        "id": user.id,
+        "name": profile.name if profile and profile.name else user.email,
+        "email": user.email,
+        "access_level": profile.access_level if profile else "ASSIGNED_SECTION_ACCESS",
+    } for user, profile in rows]
+
 from app.api.deps import get_current_management_or_faculty
 
 @router.get("/sections")
@@ -178,7 +217,7 @@ def get_sections(
     if class_id:
         query = query.filter(Section.class_id == class_id)
         
-    if current_user.role == "faculty":
+    if current_user.role == UserRole.FACULTY.value:
         # Check access level
         profile = db.query(FacultyProfile).filter(FacultyProfile.user_id == current_user.id).first()
         if profile and profile.access_level != "FULL_INSTITUTION_ACCESS":
@@ -322,6 +361,8 @@ def delete_student(
 @router.get("/students", status_code=status.HTTP_200_OK)
 def get_students(
     section_id: int = None,
+    limit: int = 100,
+    offset: int = 0,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_management_or_faculty)
 ):
@@ -340,7 +381,9 @@ def get_students(
             assigned_section_ids = [a.section_id for a in db.query(FacultySectionAssignment).filter(FacultySectionAssignment.faculty_user_id == current_user.id).all()]
             query = query.filter(Section.id.in_(assigned_section_ids))
     
-    query = query.order_by(StudentProfile.roll_number.asc())
+    limit = max(1, min(limit, 100))
+    offset = max(0, offset)
+    query = query.order_by(StudentProfile.roll_number.asc()).offset(offset).limit(limit)
     students = query.all()
     
     result = []
@@ -370,6 +413,30 @@ class MarksSubmit(BaseModel):
     credits_earned: int
     marks: List[SubjectMarkInput]
 
+
+def _require_academic_student_access(
+    db: Session, current_user: User, student_id: int
+) -> StudentProfile:
+    """Resolve a learner inside the caller's tenant and faculty section scope."""
+    from app.models.profiles import FacultyProfile, FacultySectionAssignment
+
+    student = db.query(StudentProfile).join(Section).filter(
+        StudentProfile.id == student_id,
+        Section.tenant_id == current_user.tenant_id,
+    ).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    if current_user.role == UserRole.FACULTY.value:
+        profile = db.query(FacultyProfile).filter(FacultyProfile.user_id == current_user.id).first()
+        if profile and profile.access_level != "FULL_INSTITUTION_ACCESS":
+            assignment = db.query(FacultySectionAssignment).filter(
+                FacultySectionAssignment.faculty_user_id == current_user.id,
+                FacultySectionAssignment.section_id == student.section_id,
+            ).first()
+            if not assignment:
+                raise HTTPException(status_code=403, detail="You are not assigned to this student's section")
+    return student
+
 @router.post("/faculty/marks", status_code=status.HTTP_201_CREATED)
 def submit_marks(
     request: MarksSubmit,
@@ -377,6 +444,7 @@ def submit_marks(
     current_user: User = Depends(get_current_management_or_faculty)
 ):
     from app.models.erp_academic import SemesterResult, SubjectMark
+    _require_academic_student_access(db, current_user, request.student_id)
     
     # Check if result already exists
     result = db.query(SemesterResult).filter(
@@ -389,6 +457,7 @@ def submit_marks(
         result.credits_earned = request.credits_earned
     else:
         result = SemesterResult(
+            tenant_id=current_user.tenant_id,
             student_id=request.student_id,
             semester_id=request.semester_id,
             sgpa=request.sgpa,
@@ -409,6 +478,7 @@ def submit_marks(
             sub_mark.grade = mark.grade
         else:
             new_mark = SubjectMark(
+                tenant_id=current_user.tenant_id,
                 result_id=result.id,
                 subject_id=mark.subject_id,
                 marks_obtained=mark.marks_obtained,
@@ -430,11 +500,12 @@ def add_faculty_remark(
     current_user: User = Depends(get_current_management_or_faculty)
 ):
     from app.models.erp_academic import FacultyRemark
-    
+    _require_academic_student_access(db, current_user, student_id)
     remark = FacultyRemark(
+        tenant_id=current_user.tenant_id,
         student_id=student_id,
-        faculty_user_id=current_user.id,
-        remark_text=request.remark_text
+        faculty_id=current_user.id,
+        remark=request.remark_text,
     )
     db.add(remark)
     db.commit()

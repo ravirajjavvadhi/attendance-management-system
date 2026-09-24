@@ -1,0 +1,46 @@
+name: Build KevRyn One APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/kevryn-one-apk
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    name: Build Flutter release APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: eduflow_one
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload KevRyn One APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: KevRyn-One-release-apk
+          path: eduflow_one/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error

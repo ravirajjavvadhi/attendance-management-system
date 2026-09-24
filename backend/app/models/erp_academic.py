@@ -120,6 +120,18 @@ class FacultyRemark(Base):
     remark = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+class FacultyLeaveRequest(Base):
+    __tablename__ = 'erp_faculty_leave_requests'
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey('institutions.id'), nullable=False, index=True)
+    faculty_user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    reason = Column(String, nullable=False)
+    handover_note = Column(String, nullable=True)
+    status = Column(String, nullable=False, default='PENDING')
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 class StudentAIInsight(Base):
     __tablename__ = 'erp_ai_insights'
     id = Column(Integer, primary_key=True, index=True)

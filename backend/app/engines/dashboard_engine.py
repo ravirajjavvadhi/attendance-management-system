@@ -4,7 +4,7 @@ from datetime import date as date_cls, datetime
 from app.models.profiles import StudentProfile, FacultyProfile, FacultyComment
 from app.models.academic import Section, Event, AcademicSession
 from app.models.attendance import AttendanceRecord, AttendanceSummary, SubjectSummary, AttendanceStatusEnum
-from app.models.erp_academic import Timetable, Subject, Period, SemesterResult, SubjectMark
+from app.models.erp_academic import Timetable, Subject, Period, SemesterResult, SubjectMark, FacultyRemark
 from app.models.user import User as UserModel
 from app.models.communication import TimelineEvent
 from app.models.notification import NotificationLog
@@ -230,17 +230,20 @@ class DashboardEngine:
         }
 
         # 5. Faculty Comments
-        comments_db = db.query(FacultyComment).filter(FacultyComment.student_id == student.id).order_by(FacultyComment.id.desc()).limit(5).all()
+        comments_db = db.query(FacultyRemark).filter(
+            FacultyRemark.student_id == student.id,
+            FacultyRemark.tenant_id == tenant_id,
+        ).order_by(FacultyRemark.id.desc()).limit(5).all()
         faculty_comments = []
         for c in comments_db:
-            fac_user = db.query(UserModel).filter(UserModel.id == c.faculty_user_id).first()
+            fac_user = db.query(UserModel).filter(UserModel.id == c.faculty_id).first()
             fac_name = "Dr. Unknown"
             if fac_user:
                 fac_prof = db.query(FacultyProfile).filter(FacultyProfile.user_id == fac_user.id).first()
                 fac_name = fac_prof.name if fac_prof else fac_user.email
             faculty_comments.append({
                 "faculty_name": fac_name,
-                "comment": c.comment,
+                "comment": c.remark,
                 "date": c.created_at
             })
 

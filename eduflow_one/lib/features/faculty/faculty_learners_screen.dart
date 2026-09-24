@@ -1,0 +1,31 @@
+import 'package:eduflow_core/eduflow_core.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+final facultyLearnersProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final response = await ref.watch(dioClientProvider).dio.get('/academic/students', queryParameters: {'limit': 100});
+  return (response.data as List? ?? const []).whereType<Map>().map((row) => Map<String, dynamic>.from(row)).toList();
+});
+
+class FacultyLearnersScreen extends ConsumerStatefulWidget { const FacultyLearnersScreen({super.key}); @override ConsumerState<FacultyLearnersScreen> createState() => _FacultyLearnersScreenState(); }
+class _FacultyLearnersScreenState extends ConsumerState<FacultyLearnersScreen> {
+  String _query = '';
+  @override Widget build(BuildContext context) {
+    final state = ref.watch(facultyLearnersProvider);
+    return Scaffold(appBar: AppBar(title: const Text('Learner workspace'), leading: IconButton(onPressed: () => context.go('/faculty'), icon: const Icon(Icons.arrow_back_rounded))), body: state.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: FilledButton(onPressed: () => ref.invalidate(facultyLearnersProvider), child: const Text('Try again'))),
+      data: (learners) { final q = _query.toLowerCase(); final filtered = learners.where((s) => '${s['name']} ${s['roll_number']} ${s['section_name']}'.toLowerCase().contains(q)).toList(); return ListView(padding: const EdgeInsets.all(16), children: [
+        Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(borderRadius: BorderRadius.circular(26), gradient: const LinearGradient(colors: [Color(0xFF1C255D), Color(0xFF614FEF)])), child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('LEARNER RADAR', style: TextStyle(color: Color(0xFFBFEFFD), fontWeight: FontWeight.w800)), SizedBox(height: 8), Text('Find a learner. Take the next right action.', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800))])),
+        const SizedBox(height: 16), TextField(onChanged: (v) => setState(() => _query = v), decoration: const InputDecoration(prefixIcon: Icon(Icons.search_rounded), hintText: 'Search roll number, name, or section')),
+        const SizedBox(height: 14), ...filtered.map((s) => Card(child: ListTile(onTap: () => _openLearnerActions(s), leading: CircleAvatar(child: Text((s['name']?.toString().isNotEmpty ?? false) ? s['name'].toString()[0].toUpperCase() : 'S')), title: Text(s['name']?.toString() == 'Not Provided' ? 'Student' : s['name']?.toString() ?? 'Student'), subtitle: Text('${s['roll_number'] ?? '—'} · ${s['section_name'] ?? 'Section'}'), trailing: const Icon(Icons.chevron_right_rounded)))),
+      ]); },
+    ));
+  }
+  Future<void> _openLearnerActions(Map<String, dynamic> student) async {
+    await showModalBottomSheet<void>(context: context, builder: (sheet) => SafeArea(child: Padding(padding: const EdgeInsets.all(16), child: Column(mainAxisSize: MainAxisSize.min, children: [ListTile(leading: const CircleAvatar(child: Icon(Icons.message_rounded)), title: const Text('Send parent update'), subtitle: const Text('Write a clear in-app update for the linked parent'), onTap: () { Navigator.pop(sheet); _composeUpdate(student); }), ListTile(leading: const CircleAvatar(child: Icon(Icons.rate_review_rounded)), title: const Text('Add academic remark'), subtitle: const Text('Save a learner remark visible in authorised academic views'), onTap: () { Navigator.pop(sheet); _composeRemark(student); })]))));
+  }
+  Future<void> _composeRemark(Map<String, dynamic> student) async { final remark = TextEditingController(); final saved = await showModalBottomSheet<bool>(context: context, isScrollControlled: true, builder: (sheet) => Padding(padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.viewInsetsOf(sheet).bottom + 20), child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Remark · ${student['roll_number']}', style: Theme.of(sheet).textTheme.titleLarge), const SizedBox(height: 14), TextField(controller: remark, maxLines: 5, autofocus: true, decoration: const InputDecoration(labelText: 'Academic remark', hintText: 'Write an evidence-based learning or follow-up note')), const SizedBox(height: 16), FilledButton.icon(onPressed: () async { final text = remark.text.trim(); if (text.isEmpty) return; try { await ref.read(dioClientProvider).dio.post('/academic/faculty/students/${student['id']}/remarks', data: {'remark_text': text}); if (sheet.mounted) Navigator.pop(sheet, true); } catch (_) {} }, icon: const Icon(Icons.save_rounded), label: const Text('Save remark'))]))); if (saved == true && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Academic remark saved.'))); remark.dispose(); }
+  Future<void> _composeUpdate(Map<String, dynamic> student) async { final title = TextEditingController(text: 'Academic update'); final message = TextEditingController(); final sent = await showModalBottomSheet<bool>(context: context, isScrollControlled: true, builder: (sheet) => Padding(padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.viewInsetsOf(sheet).bottom + 20), child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Update ${student['roll_number']}', style: Theme.of(sheet).textTheme.titleLarge), const SizedBox(height: 14), TextField(controller: title, decoration: const InputDecoration(labelText: 'Title')), const SizedBox(height: 10), TextField(controller: message, maxLines: 4, decoration: const InputDecoration(labelText: 'Message for parent')), const SizedBox(height: 16), FilledButton.icon(onPressed: () async { try { await ref.read(dioClientProvider).dio.post('/faculty/learners/${student['id']}/parent-update', data: {'title': title.text.trim(), 'message': message.text.trim()}); if (sheet.mounted) Navigator.pop(sheet, true); } catch (_) {} }, icon: const Icon(Icons.send_rounded), label: const Text('Send parent update'))]))); if (sent == true && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Parent update sent.'))); title.dispose(); message.dispose(); }
+}
