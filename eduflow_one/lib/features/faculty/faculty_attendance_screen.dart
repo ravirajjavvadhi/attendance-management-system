@@ -31,8 +31,8 @@ class FacultyAttendanceRepository {
     });
     final body = Map<String, dynamic>.from(response.data as Map);
     if (body['marked'] != true) return null;
-    return (body['records'] as List? ?? const []).whereType<Map>().fold(<int, bool>{},
-        (records, row) {
+    return (body['records'] as List? ?? const []).whereType<Map>().fold<Map<int, bool>>(
+        <int, bool>{}, (Map<int, bool> records, Map row) {
       final studentId = _asInt(row['student_id']);
       if (studentId != null) records[studentId] = row['is_present'] == true;
       return records;
