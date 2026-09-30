@@ -1,0 +1,11 @@
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+build/
+
+# Android machine and build state
+android/.gradle/
+android/local.properties
+android/app/build/

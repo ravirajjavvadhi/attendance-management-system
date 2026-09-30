@@ -204,6 +204,24 @@ class LeaveRequestCreate(BaseModel):
     end_date: date
     reason: str
 
+
+def _require_linked_parent_student(
+    db: Session, current_user: User, student_id: int
+) -> None:
+    if current_user.role != UserRole.PARENT.value:
+        raise HTTPException(status_code=403, detail="Only parent accounts can access parent leave requests")
+    parent = db.query(ParentProfile).filter(
+        ParentProfile.user_id == current_user.id
+    ).first()
+    if not parent:
+        raise HTTPException(status_code=404, detail="Parent profile not found")
+    link = db.query(ParentStudentLink).filter(
+        ParentStudentLink.parent_id == parent.id,
+        ParentStudentLink.student_id == student_id,
+    ).first()
+    if not link:
+        raise HTTPException(status_code=403, detail="This student is not linked to your parent account")
+
 @router.post("/leaves")
 def create_leave_request(
     request: LeaveRequestCreate,
@@ -211,6 +229,7 @@ def create_leave_request(
     current_user: User = Depends(get_current_user)
 ):
     from app.models.erp_academic import LeaveRequest
+    _require_linked_parent_student(db, current_user, request.student_id)
     leave = LeaveRequest(
         tenant_id=current_user.tenant_id,
         student_id=request.student_id,
@@ -230,6 +249,7 @@ def list_leave_requests(
     current_user: User = Depends(get_current_user)
 ):
     from app.models.erp_academic import LeaveRequest
+    _require_linked_parent_student(db, current_user, student_id)
     leaves = db.query(LeaveRequest).filter(
         LeaveRequest.tenant_id == current_user.tenant_id,
         LeaveRequest.student_id == student_id

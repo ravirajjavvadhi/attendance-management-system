@@ -15,6 +15,33 @@ from app.engines.materialized_summary_engine import materialized_summary_engine
 
 router = APIRouter()
 
+
+def _get_faculty_section(
+    db: Session, current_faculty: User, section_id: int
+):
+    """Resolve a section in the faculty's tenant and honor section access rules."""
+    from app.models.academic import Section
+    from app.models.profiles import FacultyProfile, FacultySectionAssignment
+
+    section = db.query(Section).filter(
+        Section.id == section_id,
+        Section.tenant_id == current_faculty.tenant_id,
+    ).first()
+    if not section:
+        raise HTTPException(status_code=404, detail="Section not found or access denied")
+
+    profile = db.query(FacultyProfile).filter(
+        FacultyProfile.user_id == current_faculty.id
+    ).first()
+    if profile and profile.access_level != "FULL_INSTITUTION_ACCESS":
+        assignment = db.query(FacultySectionAssignment).filter(
+            FacultySectionAssignment.faculty_user_id == current_faculty.id,
+            FacultySectionAssignment.section_id == section_id,
+        ).first()
+        if not assignment:
+            raise HTTPException(status_code=403, detail="You are not assigned to this section")
+    return section
+
 @router.get("/status", status_code=status.HTTP_200_OK)
 def get_attendance_status(
     section_id: int,
@@ -24,6 +51,7 @@ def get_attendance_status(
     current_faculty: User = Depends(get_current_faculty)
 ):
     from datetime import datetime
+    _get_faculty_section(db, current_faculty, section_id)
     try:
         query_date = datetime.strptime(date, "%Y-%m-%d").date()
     except ValueError:
@@ -228,6 +256,18 @@ def submit_attendance(
     db: Session = Depends(get_db),
     current_faculty: User = Depends(get_current_faculty)
 ):
+    _get_faculty_section(db, current_faculty, attendance_data.section_id)
+    submitted_student_ids = [record.student_id for record in attendance_data.records]
+    if submitted_student_ids:
+        valid_student_ids = {
+            student_id
+            for (student_id,) in db.query(StudentProfile.id).filter(
+                StudentProfile.section_id == attendance_data.section_id,
+                StudentProfile.id.in_(submitted_student_ids),
+            ).all()
+        }
+        if len(valid_student_ids) != len(set(submitted_student_ids)):
+            raise HTTPException(status_code=400, detail="Every student must belong to the selected section")
     # Determine active academic session for term tracking
     active_session = db.query(AcademicSession).filter(
         AcademicSession.tenant_id == current_faculty.tenant_id,
@@ -368,6 +408,17 @@ def submit_smart_attendance(
     BookMyShow Style: Faculty only submits the array of absent student IDs.
     The backend automatically defaults all other students in the section to Present.
     """
+    _get_faculty_section(db, current_faculty, attendance_data.section_id)
+    if attendance_data.absent_student_ids:
+        valid_absent_ids = {
+            student_id
+            for (student_id,) in db.query(StudentProfile.id).filter(
+                StudentProfile.section_id == attendance_data.section_id,
+                StudentProfile.id.in_(attendance_data.absent_student_ids),
+            ).all()
+        }
+        if len(valid_absent_ids) != len(set(attendance_data.absent_student_ids)):
+            raise HTTPException(status_code=400, detail="Every student must belong to the selected section")
     active_session = db.query(AcademicSession).filter(
         AcademicSession.tenant_id == current_faculty.tenant_id,
         AcademicSession.is_current == True
