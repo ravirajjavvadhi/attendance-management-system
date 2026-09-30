@@ -643,17 +643,16 @@ class _RoleNavigation extends StatelessWidget {
     };
     return NavigationBar(
         selectedIndex: 0,
-        onDestinationSelected: role == EduFlowRole.management
-            ? (index) {
-                const routes = [
-                  '/management',
-                  '/management/operations',
-                  '/management/people',
-                  '/management/insights',
-                ];
-                context.go(routes[index]);
-              }
-            : null,
+        onDestinationSelected: (index) {
+          final routes = switch (role) {
+            EduFlowRole.faculty => const ['/faculty', '/faculty/classes', '/faculty/learners', '/faculty/insights'],
+            EduFlowRole.management => const ['/management', '/management/operations', '/management/people', '/management/insights'],
+            EduFlowRole.student => const ['/student', '/student', '/student', '/student/notifications'],
+            EduFlowRole.parent => const ['/parent', '/parent', '/parent/leave', '/parent/notifications'],
+            EduFlowRole.unknown => const ['/login'],
+          };
+          context.go(routes[index]);
+        },
         destinations: items
             .map((item) =>
                 NavigationDestination(icon: Icon(item.$2), label: item.$1))

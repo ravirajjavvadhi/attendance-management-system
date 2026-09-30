@@ -13,7 +13,7 @@ class _FacultyLearnersScreenState extends ConsumerState<FacultyLearnersScreen> {
   String _query = '';
   @override Widget build(BuildContext context) {
     final state = ref.watch(facultyLearnersProvider);
-    return Scaffold(appBar: AppBar(title: const Text('Learner workspace'), leading: IconButton(onPressed: () => context.go('/faculty'), icon: const Icon(Icons.arrow_back_rounded))), body: state.when(
+    return Scaffold(appBar: AppBar(title: const Text('Learner workspace'), leading: IconButton(onPressed: () => context.canPop() ? context.pop() : context.go('/faculty'), icon: const Icon(Icons.arrow_back_rounded))), body: state.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: FilledButton(onPressed: () => ref.invalidate(facultyLearnersProvider), child: const Text('Try again'))),
       data: (learners) { final q = _query.toLowerCase(); final filtered = learners.where((s) => '${s['name']} ${s['roll_number']} ${s['section_name']}'.toLowerCase().contains(q)).toList(); return ListView(padding: const EdgeInsets.all(16), children: [

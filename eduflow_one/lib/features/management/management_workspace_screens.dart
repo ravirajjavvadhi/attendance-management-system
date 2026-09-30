@@ -24,7 +24,7 @@ class ManagementWorkspaceRepository {
 
   Future<Map<String, List<Map<String, dynamic>>>> people() async {
     final results = await Future.wait([
-      _client.dio.get('/academic/students', queryParameters: {'limit': 60}),
+      _client.dio.get('/academic/students', queryParameters: {'limit': 1000}),
       _client.dio.get('/users/faculty'),
       _client.dio.get('/academic/sections'),
     ]);
@@ -165,11 +165,11 @@ class _ManagementPeopleScreenState extends ConsumerState<ManagementPeopleScreen>
             const SizedBox(height: 24),
             _Heading(title: 'Faculty', caption: 'Active staff available in this institution'),
             const SizedBox(height: 8),
-            if (matchedFaculty.isEmpty) const _EmptyCard('No faculty records match this search.') else ...matchedFaculty.take(8).map((person) => Card(child: ListTile(leading: CircleAvatar(child: Text(_initial(person['name']))), title: Text(person['name']?.toString() ?? person['email']?.toString() ?? 'Faculty'), subtitle: Text(person['email']?.toString() ?? 'No email recorded')))),
+            if (matchedFaculty.isEmpty) const _EmptyCard('No faculty records match this search.') else ...matchedFaculty.map((person) => Card(child: ListTile(leading: CircleAvatar(child: Text(_initial(person['name']))), title: Text(person['name']?.toString() ?? person['email']?.toString() ?? 'Faculty'), subtitle: Text(person['email']?.toString() ?? 'No email recorded')))),
             const SizedBox(height: 24),
-            _Heading(title: 'Learners', caption: 'Recent directory entries; full search is the next expansion'),
+            _Heading(title: 'Learners', caption: 'Complete institution directory'),
             const SizedBox(height: 8),
-            if (matchedStudents.isEmpty) const _EmptyCard('No learners match this search.') else ...matchedStudents.take(20).map((person) => Card(child: ListTile(leading: CircleAvatar(child: Text(_initial(person['name']))), title: Text(person['name']?.toString() == 'Not Provided' ? 'Student' : person['name']?.toString() ?? 'Student'), subtitle: Text('${person['roll_number'] ?? '—'} · ${person['section_name'] ?? 'Section'}')))),
+            if (matchedStudents.isEmpty) const _EmptyCard('No learners match this search.') else ...matchedStudents.map((person) => Card(child: ListTile(leading: CircleAvatar(child: Text(_initial(person['name']))), title: Text(person['name']?.toString() == 'Not Provided' ? 'Student' : person['name']?.toString() ?? 'Student'), subtitle: Text('${person['roll_number'] ?? '—'} · ${person['section_name'] ?? 'Section'}')))),
           ]);
         },
       ),

@@ -381,7 +381,9 @@ def get_students(
             assigned_section_ids = [a.section_id for a in db.query(FacultySectionAssignment).filter(FacultySectionAssignment.faculty_user_id == current_user.id).all()]
             query = query.filter(Section.id.in_(assigned_section_ids))
     
-    limit = max(1, min(limit, 100))
+    # Management mobile directory supports a complete institution search while
+    # preserving a bounded response for protection against accidental abuse.
+    limit = max(1, min(limit, 1000))
     offset = max(0, offset)
     query = query.order_by(StudentProfile.roll_number.asc()).offset(offset).limit(limit)
     students = query.all()

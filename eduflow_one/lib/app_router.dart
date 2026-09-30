@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'auth/session.dart';
 import 'features/dashboard/role_dashboard_screen.dart';
 import 'features/faculty/faculty_attendance_screen.dart';
+import 'features/faculty/faculty_classes_screen.dart';
+import 'features/faculty/faculty_insights_screen.dart';
 import 'features/faculty/faculty_learners_screen.dart';
 import 'features/faculty/faculty_leave_screen.dart';
 import 'features/login/login_screen.dart';
@@ -40,6 +42,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(path: '/faculty/learners', builder: (_, __) => const FacultyLearnersScreen()),
+      GoRoute(path: '/faculty/classes', builder: (_, __) => const FacultyClassesScreen()),
+      GoRoute(path: '/faculty/insights', builder: (_, __) => const FacultyInsightsScreen()),
       GoRoute(path: '/faculty/leave', builder: (_, __) => const FacultyLeaveScreen()),
       GoRoute(
           path: '/parent',
