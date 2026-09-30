@@ -601,12 +601,9 @@ class _DashboardError extends StatelessWidget {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             const Icon(Icons.cloud_off_rounded, size: 52),
             const SizedBox(height: 14),
-            const Text('We could not load this workspace.'),
+            const Text('Your workspace is temporarily unavailable.', textAlign: TextAlign.center),
             const SizedBox(height: 8),
-            Text(error.toString(),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis),
+            const Text('Check your connection and try again. Your account and attendance data are safe.', textAlign: TextAlign.center),
             const SizedBox(height: 18),
             FilledButton(onPressed: onRetry, child: const Text('Try again'))
           ])));
